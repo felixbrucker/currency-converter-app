@@ -1,0 +1,6 @@
+{
+  "name": "Currency Converter",
+  "description": "Real-time fiat and crypto currency conversion with Material You styling, cached exchange rates, and live multi-currency recalculations.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
