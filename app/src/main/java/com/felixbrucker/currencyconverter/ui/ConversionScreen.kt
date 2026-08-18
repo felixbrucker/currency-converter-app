@@ -52,19 +52,18 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.felixbrucker.currencyconverter.ui.components.ConversionCard
 import com.felixbrucker.currencyconverter.ui.components.CurrencySelectorSheet
 import com.felixbrucker.currencyconverter.ui.components.RatesInfoDialog
-import com.felixbrucker.currencyconverter.ui.components.SettingsDialog
 import com.felixbrucker.currencyconverter.ui.components.UpdateTimerHeader
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ConversionScreen(
     viewModel: ConversionViewModel,
+    onNavigateToSettings: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     var showCurrencySheet by remember { mutableStateOf(false) }
-    var showSettingsDialog by remember { mutableStateOf(false) }
     var showRatesInfoDialog by remember { mutableStateOf(false) }
 
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -90,7 +89,7 @@ fun ConversionScreen(
                 isRefreshing = uiState.isRefreshing,
                 isOnline = uiState.isOnline,
                 onSearchClick = { showCurrencySheet = true },
-                onSettingsClick = { showSettingsDialog = true }
+                onSettingsClick = onNavigateToSettings
             )
 
             // Conversion list with pull to refresh
@@ -255,21 +254,6 @@ fun ConversionScreen(
                 viewModel.onToggleCurrency(code, isSelected)
             },
             onDismiss = { showCurrencySheet = false }
-        )
-    }
-
-    if (showSettingsDialog) {
-        SettingsDialog(
-            bgSyncEnabled = uiState.bgSyncEnabled,
-            bgSyncIntervalHours = uiState.bgSyncIntervalHours,
-            autoRefreshMinutes = uiState.autoRefreshMinutes,
-            lastUpdatedTimestamp = uiState.lastUpdatedTimestamp,
-            onBgSyncToggle = { viewModel.setBgSyncEnabled(it) },
-            onBgSyncIntervalChange = { viewModel.setBgSyncIntervalHours(it) },
-            onAutoRefreshMinutesChange = { viewModel.setAutoRefreshMinutes(it) },
-            onForceSyncNow = { viewModel.refreshRates() },
-            onResetDefaults = { viewModel.resetToDefaults() },
-            onDismiss = { showSettingsDialog = false }
         )
     }
 
