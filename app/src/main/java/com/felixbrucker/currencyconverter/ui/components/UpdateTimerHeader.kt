@@ -1,5 +1,8 @@
 package com.felixbrucker.currencyconverter.ui.components
 
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -19,6 +22,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
@@ -38,9 +42,15 @@ fun UpdateTimerHeader(
     onSettingsClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val progress = if (maxCountdownSeconds > 0) {
+    val targetProgress = if (maxCountdownSeconds > 0) {
         (countdownSeconds.toFloat() / maxCountdownSeconds.toFloat()).coerceIn(0f, 1f)
     } else 1f
+
+    val animatedProgress by animateFloatAsState(
+        targetValue = targetProgress,
+        animationSpec = tween(durationMillis = 1000, easing = LinearEasing),
+        label = "timerProgress"
+    )
 
     val minutes = countdownSeconds / 60
     val secs = countdownSeconds % 60
@@ -73,7 +83,7 @@ fun UpdateTimerHeader(
                     )
                 } else {
                     CircularProgressIndicator(
-                        progress = { progress },
+                        progress = { animatedProgress },
                         modifier = Modifier.size(40.dp),
                         color = MaterialTheme.colorScheme.primary,
                         trackColor = MaterialTheme.colorScheme.outline,
