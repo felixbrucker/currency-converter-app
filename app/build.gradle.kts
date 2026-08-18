@@ -10,11 +10,11 @@ plugins {
 }
 
 android {
-  namespace = "com.example"
+  namespace = "com.felixbrucker.currencyconverter"
   compileSdk = 37
 
   defaultConfig {
-    applicationId = "com.aistudio.currencyconverter.rtvx"
+    applicationId = "com.felixbrucker.currencyconverter"
     minSdk = 24
     targetSdk = 37
     versionCode = 1
