@@ -30,7 +30,6 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Switch
-import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -125,9 +124,6 @@ fun SettingsScreen(
                         Switch(
                             checked = uiState.bgSyncEnabled,
                             onCheckedChange = { viewModel.setBgSyncEnabled(it) },
-                            colors = SwitchDefaults.colors(
-                                checkedThumbColor = MaterialTheme.colorScheme.primary
-                            ),
                             modifier = Modifier.testTag("bg_sync_switch")
                         )
                     }
