@@ -33,6 +33,7 @@ fun UpdateTimerHeader(
     maxCountdownSeconds: Int,
     lastUpdatedTimestamp: Long,
     isOnline: Boolean,
+    isRefreshing: Boolean,
     onSearchClick: () -> Unit,
     onSettingsClick: () -> Unit,
     modifier: Modifier = Modifier
@@ -64,21 +65,29 @@ fun UpdateTimerHeader(
                     .size(42.dp)
                     .testTag("timer_progress_box")
             ) {
-                CircularProgressIndicator(
-                    progress = { progress },
-                    modifier = Modifier.size(40.dp),
-                    color = MaterialTheme.colorScheme.primary,
-                    trackColor = MaterialTheme.colorScheme.outline,
-                    strokeWidth = 3.5.dp,
-                )
-                Text(
-                    text = timerString,
-                    style = MaterialTheme.typography.labelSmall.copy(
-                        fontSize = if (timerString.length > 3) 9.sp else 10.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
+                if (isRefreshing) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(40.dp),
+                        color = MaterialTheme.colorScheme.primary,
+                        strokeWidth = 3.5.dp,
                     )
-                )
+                } else {
+                    CircularProgressIndicator(
+                        progress = { progress },
+                        modifier = Modifier.size(40.dp),
+                        color = MaterialTheme.colorScheme.primary,
+                        trackColor = MaterialTheme.colorScheme.outline,
+                        strokeWidth = 3.5.dp,
+                    )
+                    Text(
+                        text = timerString,
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontSize = if (timerString.length > 3) 9.sp else 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.width(12.dp))
