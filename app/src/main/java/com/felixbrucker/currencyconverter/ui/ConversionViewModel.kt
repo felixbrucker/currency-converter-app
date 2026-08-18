@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.felixbrucker.currencyconverter.data.CurrenciesCatalog
+import com.felixbrucker.currencyconverter.data.local.CurrencyProviderEntity
 import com.felixbrucker.currencyconverter.data.local.ExchangeRateEntity
 import com.felixbrucker.currencyconverter.data.local.UserCurrencyEntity
 import com.felixbrucker.currencyconverter.data.repository.CurrencyRepository
@@ -36,7 +37,8 @@ data class ConversionUiState(
     val bgSyncIntervalHours: Long = 4L,
     val autoRefreshMinutes: Int = 3,
     val searchQuery: String = "",
-    val allCurrenciesWithSelection: List<Pair<Currency, Boolean>> = emptyList()
+    val allCurrenciesWithSelection: List<Pair<Currency, Boolean>> = emptyList(),
+    val providers: List<CurrencyProviderEntity> = emptyList()
 )
 
 class ConversionViewModel(application: Application) : AndroidViewModel(application) {
@@ -115,7 +117,8 @@ class ConversionViewModel(application: Application) : AndroidViewModel(applicati
         _isHintActive,
         _countdownSeconds,
         _maxCountdownSeconds,
-        _searchQuery
+        _searchQuery,
+        repository.providersFlow
     ) { params: Array<Any?> ->
         var idx = 0
         @Suppress("UNCHECKED_CAST")
@@ -136,6 +139,8 @@ class ConversionViewModel(application: Application) : AndroidViewModel(applicati
         val countdown = params[idx++] as Int
         val maxCountdown = params[idx++] as Int
         val search = params[idx++] as String
+        @Suppress("UNCHECKED_CAST")
+        val providers = params[idx++] as List<CurrencyProviderEntity>
 
         val selectedUserCurrencies = userCurrencies
             .filter { it.isSelected }
@@ -255,7 +260,8 @@ class ConversionViewModel(application: Application) : AndroidViewModel(applicati
             bgSyncIntervalHours = bgSyncHrs,
             autoRefreshMinutes = autoMins,
             searchQuery = search,
-            allCurrenciesWithSelection = filteredCurrencies
+            allCurrenciesWithSelection = filteredCurrencies,
+            providers = providers
         )
     }.stateIn(
         scope = viewModelScope,
@@ -349,6 +355,36 @@ class ConversionViewModel(application: Application) : AndroidViewModel(applicati
 
     fun onSearchQueryChanged(query: String) {
         _searchQuery.value = query
+    }
+
+    fun onToggleProvider(name: String, isEnabled: Boolean) {
+        viewModelScope.launch {
+            repository.toggleProvider(name, isEnabled)
+        }
+    }
+
+    fun onMoveProviderUp(name: String) {
+        val current = uiState.value.providers.map { it.name }.toMutableList()
+        val index = current.indexOf(name)
+        if (index > 0) {
+            val item = current.removeAt(index)
+            current.add(index - 1, item)
+            viewModelScope.launch {
+                repository.updateProvidersOrder(current)
+            }
+        }
+    }
+
+    fun onMoveProviderDown(name: String) {
+        val current = uiState.value.providers.map { it.name }.toMutableList()
+        val index = current.indexOf(name)
+        if (index >= 0 && index < current.lastIndex) {
+            val item = current.removeAt(index)
+            current.add(index + 1, item)
+            viewModelScope.launch {
+                repository.updateProvidersOrder(current)
+            }
+        }
     }
 
     fun refreshRates(showLoadingIndicator: Boolean = true) {

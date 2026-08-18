@@ -9,6 +9,10 @@ plugins {
   alias(libs.plugins.google.services)
 }
 
+ksp {
+    arg("room.schemaLocation", "$projectDir/schemas")
+}
+
 android {
   namespace = "com.felixbrucker.currencyconverter"
   compileSdk = 37

@@ -48,4 +48,19 @@ interface CurrencyDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun setSetting(setting: AppSettingEntity)
+
+    @Query("SELECT * FROM currency_providers ORDER BY displayOrder ASC")
+    fun getAllProvidersFlow(): Flow<List<CurrencyProviderEntity>>
+
+    @Query("SELECT * FROM currency_providers WHERE isEnabled = 1 ORDER BY displayOrder ASC")
+    suspend fun getEnabledProviders(): List<CurrencyProviderEntity>
+
+    @Query("UPDATE currency_providers SET lastSyncTimestamp = :timestamp WHERE name = :name")
+    suspend fun updateProviderSyncTime(name: String, timestamp: Long)
+
+    @Query("UPDATE currency_providers SET isEnabled = :isEnabled WHERE name = :name")
+    suspend fun updateProviderStatus(name: String, isEnabled: Boolean)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertProviders(providers: List<CurrencyProviderEntity>)
 }
