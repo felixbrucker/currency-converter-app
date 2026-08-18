@@ -109,7 +109,8 @@ class CurrencyRepository(
                                 }
                                 PROVIDER_FRANKFURTER -> {
                                     val response = NetworkClient.frankfurterApi.getLatestRates("USD")
-                                    response.rates
+                                    response.associate { (it.quote ?: "") to (it.rate ?: 0.0) }
+                                        .filter { it.key.isNotEmpty() }
                                 }
                                 else -> emptyMap()
                             }

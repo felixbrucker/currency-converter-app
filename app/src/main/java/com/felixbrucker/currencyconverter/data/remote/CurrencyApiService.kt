@@ -26,11 +26,11 @@ data class OpenErApiResponse(
 )
 
 @JsonClass(generateAdapter = true)
-data class FrankfurterResponse(
-    val amount: Double? = null,
-    val base: String? = null,
+data class FrankfurterRate(
     val date: String? = null,
-    val rates: Map<String, Double> = emptyMap()
+    val base: String? = null,
+    val quote: String? = null,
+    val rate: Double? = null
 )
 
 interface OpenErApiService {
@@ -39,8 +39,8 @@ interface OpenErApiService {
 }
 
 interface FrankfurterApiService {
-    @GET("v1/latest")
-    suspend fun getLatestRates(@Query("base") base: String = "USD"): FrankfurterResponse
+    @GET("v2/rates")
+    suspend fun getLatestRates(@Query("base") base: String = "USD"): List<FrankfurterRate>
 }
 
 object NetworkClient {
