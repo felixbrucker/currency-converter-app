@@ -37,6 +37,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -112,6 +113,7 @@ fun ConversionScreen(
                         key = { _, row -> row.currency.code }
                     ) { index, rowState ->
                         val isDragging = draggedIndex == index
+                        val currentItemIndex by rememberUpdatedState(index)
 
                         Box(
                             modifier = Modifier
@@ -122,10 +124,10 @@ fun ConversionScreen(
                                     scaleX = if (isDragging) 1.03f else 1f
                                     scaleY = if (isDragging) 1.03f else 1f
                                 }
-                                .pointerInput(uiState.rows.size, index) {
+                                .pointerInput(uiState.rows.size, rowState.currency.code) {
                                     detectDragGesturesAfterLongPress(
                                         onDragStart = {
-                                            draggedIndex = index
+                                            draggedIndex = currentItemIndex
                                             dragOffsetY = 0f
                                         },
                                         onDrag = { change, dragAmount ->
