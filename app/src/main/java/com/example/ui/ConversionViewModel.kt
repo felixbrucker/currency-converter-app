@@ -238,33 +238,32 @@ class ConversionViewModel(application: Application) : AndroidViewModel(applicati
     fun onRowFocused(code: String) {
         val currentState = uiState.value
         val targetRow = currentState.rows.find { it.currency.code.equals(code, ignoreCase = true) }
-        val previousDisplayed = if (targetRow != null) {
-            if (targetRow.isFocused) {
-                if (currentState.activeInputText.isNotBlank()) currentState.activeInputText else currentState.rows.find { it.currency.code == code }?.hintAmountText ?: "1.00"
-            } else {
-                targetRow.displayedAmountText.replace(",", "")
-            }
+        val currentAmountText = if (targetRow != null) {
+            targetRow.displayedAmountText.replace(",", "")
         } else "1.00"
 
-        val sanitizedHint = if (previousDisplayed.isBlank() || previousDisplayed == "0") "1.00" else previousDisplayed
+        val parsed = currentAmountText.toDoubleOrNull() ?: 1.0
+        val cleanAmount = if (parsed <= 0.0) 1.0 else parsed
+        val activeCurrency = CurrenciesCatalog.find(code) ?: Currency(code, code, "$", "🌐")
+        val formatted = CurrencyFormatter.formatAmount(cleanAmount, activeCurrency)
 
         _activeCurrencyCode.value = code
-        _activeHintAmount.value = sanitizedHint
+        _activeHintAmount.value = formatted.replace(",", "")
         _activeInputText.value = ""
         _isHintActive.value = true
     }
 
     fun onAmountInputChanged(input: String) {
         val cleaned = CurrencyFormatter.cleanInput(input)
-        _isHintActive.value = false
         _activeInputText.value = cleaned
+        _isHintActive.value = cleaned.isBlank()
     }
 
     fun onFinishInput() {
         val currentInput = _activeInputText.value.trim()
         if (currentInput.isNotBlank()) {
             val parsed = currentInput.toDoubleOrNull()
-            if (parsed != null) {
+            if (parsed != null && parsed > 0.0) {
                 val activeCurrency = CurrenciesCatalog.find(_activeCurrencyCode.value)
                     ?: Currency(_activeCurrencyCode.value, _activeCurrencyCode.value, "$", "🌐")
                 val formatted = CurrencyFormatter.formatAmount(parsed, activeCurrency)

@@ -8,7 +8,6 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -203,7 +202,7 @@ fun ConversionCard(
                         }
                     }
             ) {
-                // Top: Symbol and Amount tightly grouped on the right
+                // Top: Symbol and Amount grouped together at the right
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.End
@@ -219,92 +218,62 @@ fun ConversionCard(
                         modifier = Modifier.padding(end = 4.dp)
                     )
 
-                    // Amount input or text
                     if (isActive) {
-                        val textToDisplay = if (rowState.enteredText.isNotEmpty()) {
-                            rowState.enteredText
-                        } else if (isFieldFocused) {
-                            rowState.hintAmountText
-                        } else {
-                            rowState.displayedAmountText
-                        }
-
-                        Box(
-                            contentAlignment = Alignment.CenterEnd,
-                            modifier = Modifier.width(IntrinsicSize.Min)
-                        ) {
-                            // Sizing measurement text
-                            Text(
-                                text = textToDisplay.ifEmpty { "0" },
-                                style = MaterialTheme.typography.titleLarge.copy(
-                                    fontWeight = FontWeight.SemiBold,
-                                    fontSize = 24.sp,
-                                    textAlign = TextAlign.End
-                                ),
-                                color = Color.Transparent,
-                                maxLines = 1
-                            )
-
-                            // Placeholder when focused and empty
-                            if (isFieldFocused && rowState.enteredText.isEmpty()) {
-                                Text(
-                                    text = rowState.hintAmountText,
-                                    style = MaterialTheme.typography.titleLarge.copy(
-                                        fontWeight = FontWeight.SemiBold,
-                                        fontSize = 24.sp,
-                                        textAlign = TextAlign.End,
-                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
-                                    ),
-                                    maxLines = 1
-                                )
-                            } else if (!isFieldFocused && rowState.enteredText.isEmpty()) {
-                                // Full solid text when unfocused
-                                Text(
-                                    text = rowState.displayedAmountText,
-                                    style = MaterialTheme.typography.titleLarge.copy(
-                                        fontWeight = FontWeight.SemiBold,
-                                        fontSize = 24.sp,
-                                        textAlign = TextAlign.End,
-                                        color = MaterialTheme.colorScheme.onSurface
-                                    ),
-                                    maxLines = 1
-                                )
-                            }
-
-                            BasicTextField(
-                                value = rowState.enteredText,
-                                onValueChange = { onAmountChange(it) },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .focusRequester(focusRequester)
-                                    .onFocusChanged { focusState ->
-                                        val wasFocused = isFieldFocused
-                                        isFieldFocused = focusState.isFocused
-                                        if (wasFocused && !focusState.isFocused) {
-                                            onFinishInput()
-                                        }
-                                    }
-                                    .testTag("amount_input_${rowState.currency.code}"),
-                                textStyle = MaterialTheme.typography.titleLarge.copy(
-                                    fontWeight = FontWeight.SemiBold,
-                                    fontSize = 24.sp,
-                                    textAlign = TextAlign.End,
-                                    color = MaterialTheme.colorScheme.onSurface
-                                ),
-                                singleLine = true,
-                                cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
-                                keyboardOptions = KeyboardOptions(
-                                    keyboardType = KeyboardType.Decimal,
-                                    imeAction = ImeAction.Done
-                                ),
-                                keyboardActions = KeyboardActions(
-                                    onDone = {
+                        BasicTextField(
+                            value = rowState.enteredText,
+                            onValueChange = { onAmountChange(it) },
+                            modifier = Modifier
+                                .focusRequester(focusRequester)
+                                .onFocusChanged { focusState ->
+                                    val wasFocused = isFieldFocused
+                                    isFieldFocused = focusState.isFocused
+                                    if (wasFocused && !focusState.isFocused) {
                                         onFinishInput()
-                                        focusManager.clearFocus()
                                     }
-                                )
-                            )
-                        }
+                                }
+                                .testTag("amount_input_${rowState.currency.code}"),
+                            textStyle = MaterialTheme.typography.titleLarge.copy(
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 24.sp,
+                                textAlign = TextAlign.End,
+                                color = MaterialTheme.colorScheme.onSurface
+                            ),
+                            singleLine = true,
+                            cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+                            keyboardOptions = KeyboardOptions(
+                                keyboardType = KeyboardType.Decimal,
+                                imeAction = ImeAction.Done
+                            ),
+                            keyboardActions = KeyboardActions(
+                                onDone = {
+                                    onFinishInput()
+                                    focusManager.clearFocus()
+                                }
+                            ),
+                            decorationBox = { innerTextField ->
+                                Box(
+                                    contentAlignment = Alignment.CenterEnd
+                                ) {
+                                    if (rowState.enteredText.isEmpty()) {
+                                        Text(
+                                            text = if (isFieldFocused) rowState.hintAmountText else rowState.displayedAmountText,
+                                            style = MaterialTheme.typography.titleLarge.copy(
+                                                fontWeight = FontWeight.SemiBold,
+                                                fontSize = 24.sp,
+                                                textAlign = TextAlign.End,
+                                                color = if (isFieldFocused) {
+                                                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+                                                } else {
+                                                    MaterialTheme.colorScheme.onSurface
+                                                }
+                                            ),
+                                            maxLines = 1
+                                        )
+                                    }
+                                    innerTextField()
+                                }
+                            }
+                        )
                     } else {
                         Text(
                             text = rowState.displayedAmountText,
