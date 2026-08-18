@@ -31,11 +31,7 @@ object CurrencyFormatter {
                 DecimalFormat("#,##0.000", symbols).format(amount)
             }
             else -> {
-                if (amount >= 1000000) {
-                    DecimalFormat("#,##0.00", symbols).format(amount)
-                } else {
-                    DecimalFormat("#,##0.00", symbols).format(amount)
-                }
+                DecimalFormat("#,##0.00", symbols).format(amount)
             }
         }
     }

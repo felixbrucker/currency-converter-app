@@ -10,6 +10,5 @@ data class Currency(
     val flag: String,
     val isCrypto: Boolean = false,
     val country: String = "",
-    val decimalPlaces: Int = if (isCrypto) 6 else 2,
-    val isPopular: Boolean = false
+    val decimalPlaces: Int = if (isCrypto) 6 else 2
 )
