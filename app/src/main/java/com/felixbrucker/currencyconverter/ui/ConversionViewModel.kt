@@ -11,15 +11,19 @@ import com.felixbrucker.currencyconverter.data.repository.CurrencyRepository
 import com.felixbrucker.currencyconverter.data.worker.ExchangeRateSyncWorker
 import com.felixbrucker.currencyconverter.model.ConversionRowState
 import com.felixbrucker.currencyconverter.model.Currency
+import com.felixbrucker.currencyconverter.model.CurrencyType
 import com.felixbrucker.currencyconverter.util.CurrencyFormatter
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlin.text.lowercase
+import kotlin.text.uppercase
 import kotlin.time.Duration.Companion.seconds
 
 data class ConversionUiState(
@@ -30,14 +34,12 @@ data class ConversionUiState(
     val lastUpdatedTimestamp: Long = 0L,
     val isRefreshing: Boolean = false,
     val refreshMessage: String? = null,
-    val countdownSeconds: Int = 180,
-    val maxCountdownSeconds: Int = 180,
+    val maxCountdownSeconds: Int = 300,
     val isOnline: Boolean = true,
     val bgSyncEnabled: Boolean = true,
-    val bgSyncIntervalHours: Long = 4L,
-    val autoRefreshMinutes: Int = 3,
+    val bgSyncIntervalHours: Long = 12L,
+    val autoRefreshMinutes: Int = 5,
     val searchQuery: String = "",
-    val allCurrenciesWithSelection: List<Pair<Currency, Boolean>> = emptyList(),
     val providers: List<CurrencyProviderEntity> = emptyList()
 )
 
@@ -56,12 +58,12 @@ class ConversionViewModel(application: Application) : AndroidViewModel(applicati
 
     private val _searchQuery = MutableStateFlow("")
 
-    private val _bgSyncEnabled = MutableStateFlow(true)
-    private val _bgSyncIntervalHours = MutableStateFlow(4L)
-    private val _autoRefreshMinutes = MutableStateFlow(3)
+    private val _bgSyncEnabled = MutableStateFlow(false)
+    private val _bgSyncIntervalHours = MutableStateFlow(12L)
+    private val _autoRefreshMinutes = MutableStateFlow(5)
 
-    private val _countdownSeconds = MutableStateFlow(180)
-    private val _maxCountdownSeconds = MutableStateFlow(180)
+    private val _countdownSeconds = MutableStateFlow(300)
+    private val _maxCountdownSeconds = MutableStateFlow(300)
 
     private var countdownJob: Job? = null
 
@@ -101,6 +103,41 @@ class ConversionViewModel(application: Application) : AndroidViewModel(applicati
         }
     }
 
+    val allCurrenciesWithSelection: StateFlow<List<Pair<Currency, Boolean>>> = combine(
+        _searchQuery,
+        repository.userCurrenciesFlow,
+    ) { params: Array<Any?> ->
+        var idx = 0
+        val search = params[idx++] as String
+        @Suppress("UNCHECKED_CAST")
+        val userCurrencies = params[idx++] as List<UserCurrencyEntity>
+        val selectedCodeSet = userCurrencies.filter { it.isSelected }.map { it.code.uppercase() }.toSet()
+        val allCurrenciesWithFlags = CurrenciesCatalog.allCurrencies.map { c ->
+            c to selectedCodeSet.contains(c.code.uppercase())
+        }
+
+        if (search.isBlank()) {
+            val (selected, unselected) = allCurrenciesWithFlags.partition { it.second }
+            selected + unselected
+        } else {
+            val q = search.trim().lowercase()
+            allCurrenciesWithFlags.filter { (c, _) ->
+                c.code.lowercase().contains(q) ||
+                        c.name.lowercase().contains(q) ||
+                        when (c.type) {
+                            is CurrencyType.Fiat -> c.type.country.lowercase().contains(q)
+                            is CurrencyType.Crypto -> c.type.coinGeckoId.lowercase().contains(q)
+                        }
+            }
+        }
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = listOf()
+    )
+
+    val countdownSeconds: StateFlow<Int> = _countdownSeconds.asStateFlow()
+
     val uiState: StateFlow<ConversionUiState> = combine(
         repository.userCurrenciesFlow,
         repository.ratesFlow,
@@ -115,7 +152,6 @@ class ConversionViewModel(application: Application) : AndroidViewModel(applicati
         _activeHintAmount,
         _activeInputText,
         _isHintActive,
-        _countdownSeconds,
         _maxCountdownSeconds,
         _searchQuery,
         repository.providersFlow
@@ -136,7 +172,6 @@ class ConversionViewModel(application: Application) : AndroidViewModel(applicati
         val activeHint = params[idx++] as String
         val activeInput = params[idx++] as String
         val isHint = params[idx++] as Boolean
-        val countdown = params[idx++] as Int
         val maxCountdown = params[idx++] as Int
         val search = params[idx++] as String
         @Suppress("UNCHECKED_CAST")
@@ -147,7 +182,6 @@ class ConversionViewModel(application: Application) : AndroidViewModel(applicati
             .sortedBy { it.displayOrder }
 
         val activeCurrency = CurrenciesCatalog.find(activeCode)
-            ?: Currency(activeCode, activeCode, "$", "🌐")
         val activeRateEntity = rates[activeCode.uppercase()]
         val activeRateToUsd = activeRateEntity?.rateToUsd
 
@@ -160,9 +194,8 @@ class ConversionViewModel(application: Application) : AndroidViewModel(applicati
         val now = System.currentTimeMillis()
         val staleThreshold = 24 * 60 * 60 * 1000L
 
-        val rows = selectedUserCurrencies.map { userCurrency ->
-            val currency = CurrenciesCatalog.find(userCurrency.code)
-                ?: Currency(userCurrency.code, userCurrency.code, "$", "🌐")
+        val rows = selectedUserCurrencies.mapNotNull { userCurrency ->
+            val currency = CurrenciesCatalog.find(userCurrency.code) ?: return@mapNotNull null
             val isFocused = currency.code.equals(activeCode, ignoreCase = true)
             val rateEntity = rates[currency.code.uppercase()]
             val currencyRateToUsd = rateEntity?.rateToUsd
@@ -209,7 +242,7 @@ class ConversionViewModel(application: Application) : AndroidViewModel(applicati
                 "N/A"
             }
             val baseRateText = if (unitExchangeRate != null) {
-                "1 ${activeCurrency.code} = $rateFormatted ${currency.code}"
+                "1 ${activeCurrency?.code ?: activeCode.uppercase()} = $rateFormatted ${currency.code}"
             } else {
                 "Rate unavailable"
             }
@@ -228,23 +261,6 @@ class ConversionViewModel(application: Application) : AndroidViewModel(applicati
             )
         }
 
-        val selectedCodeSet = userCurrencies.filter { it.isSelected }.map { it.code.uppercase() }.toSet()
-        val allCurrenciesWithFlags = CurrenciesCatalog.allCurrencies.map { c ->
-            c to selectedCodeSet.contains(c.code.uppercase())
-        }
-
-        val filteredCurrencies = if (search.isBlank()) {
-            val (selected, unselected) = allCurrenciesWithFlags.partition { it.second }
-            selected + unselected
-        } else {
-            val q = search.trim().lowercase()
-            allCurrenciesWithFlags.filter { (c, _) ->
-                c.code.lowercase().contains(q) ||
-                        c.name.lowercase().contains(q) ||
-                        c.country.lowercase().contains(q)
-            }
-        }
-
         ConversionUiState(
             rows = rows,
             activeCurrencyCode = activeCode,
@@ -253,14 +269,12 @@ class ConversionViewModel(application: Application) : AndroidViewModel(applicati
             lastUpdatedTimestamp = lastUpdated,
             isRefreshing = isRef,
             refreshMessage = refMsg,
-            countdownSeconds = countdown,
             maxCountdownSeconds = maxCountdown,
             isOnline = isOnline,
             bgSyncEnabled = bgSyncEn,
             bgSyncIntervalHours = bgSyncHrs,
             autoRefreshMinutes = autoMins,
             searchQuery = search,
-            allCurrenciesWithSelection = filteredCurrencies,
             providers = providers
         )
     }.stateIn(
@@ -272,13 +286,11 @@ class ConversionViewModel(application: Application) : AndroidViewModel(applicati
     fun onRowFocused(code: String) {
         val currentState = uiState.value
         val targetRow = currentState.rows.find { it.currency.code.equals(code, ignoreCase = true) }
-        val currentAmountText = if (targetRow != null) {
-            targetRow.displayedAmountText.replace(",", "")
-        } else "1.00"
+        val currentAmountText = targetRow?.displayedAmountText?.replace(",", "") ?: "1.00"
 
         val parsed = currentAmountText.toDoubleOrNull() ?: 1.0
         val cleanAmount = if (parsed <= 0.0) 1.0 else parsed
-        val activeCurrency = CurrenciesCatalog.find(code) ?: Currency(code, code, "$", "🌐")
+        val activeCurrency = CurrenciesCatalog.find(code) ?: return
         val formatted = CurrencyFormatter.formatAmount(cleanAmount, activeCurrency)
 
         _activeCurrencyCode.value = code
@@ -298,10 +310,12 @@ class ConversionViewModel(application: Application) : AndroidViewModel(applicati
         if (currentInput.isNotBlank()) {
             val parsed = currentInput.toDoubleOrNull()
             if (parsed != null && parsed > 0.0) {
-                val activeCurrency = CurrenciesCatalog.find(_activeCurrencyCode.value)
-                    ?: Currency(_activeCurrencyCode.value, _activeCurrencyCode.value, "$", "🌐")
-                val formatted = CurrencyFormatter.formatAmount(parsed, activeCurrency)
-                _activeHintAmount.value = formatted.replace(",", "")
+                CurrenciesCatalog
+                    .find(_activeCurrencyCode.value)
+                    ?.let { activeCurrency ->
+                        val formatted = CurrencyFormatter.formatAmount(parsed, activeCurrency)
+                        _activeHintAmount.value = formatted.replace(",", "")
+                    }
             }
         }
         _activeInputText.value = ""

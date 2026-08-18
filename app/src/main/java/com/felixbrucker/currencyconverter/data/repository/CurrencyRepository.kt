@@ -9,6 +9,7 @@ import com.felixbrucker.currencyconverter.data.local.CurrencyProviderEntity
 import com.felixbrucker.currencyconverter.data.local.ExchangeRateEntity
 import com.felixbrucker.currencyconverter.data.local.UserCurrencyEntity
 import com.felixbrucker.currencyconverter.data.remote.NetworkClient
+import com.felixbrucker.currencyconverter.model.CurrencyType
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -32,6 +33,7 @@ class CurrencyRepository(
 
         const val PROVIDER_OPEN_ER = "Open ER API"
         const val PROVIDER_FRANKFURTER = "Frankfurter API"
+        const val PROVIDER_COINGECKO = "CoinGecko API"
 
         @Volatile
         private var INSTANCE: CurrencyRepository? = null
@@ -67,13 +69,20 @@ class CurrencyRepository(
             dao.insertUserCurrencies(initialUserCurrencies)
         }
 
-        val providers = dao.getAllProvidersFlow().firstOrNull()
-        if (providers.isNullOrEmpty()) {
-            val initialProviders = listOf(
-                CurrencyProviderEntity(PROVIDER_OPEN_ER, true, 0),
-                CurrencyProviderEntity(PROVIDER_FRANKFURTER, false, 1),
-            )
-            dao.insertProviders(initialProviders)
+        val providers = dao.getAllProvidersFlow().firstOrNull() ?: emptyList()
+        val providerNames = providers.map { it.name }.toSet()
+        val missingProviders = mutableListOf<CurrencyProviderEntity>()
+        listOf(
+            CurrencyProviderEntity(PROVIDER_OPEN_ER, true, 0),
+            CurrencyProviderEntity(PROVIDER_FRANKFURTER, false, 1),
+            CurrencyProviderEntity(PROVIDER_COINGECKO, false, 2),
+        ).forEach { p ->
+            if (!providerNames.contains(p.name)) {
+                missingProviders.add(p.copy(displayOrder = providers.size + missingProviders.size))
+            }
+        }
+        if (missingProviders.isNotEmpty()) {
+            dao.insertProviders(missingProviders)
         }
 
         val bgEnabled = dao.getSetting(KEY_BG_SYNC_ENABLED)
@@ -111,6 +120,39 @@ class CurrencyRepository(
                                     val response = NetworkClient.frankfurterApi.getLatestRates("USD")
                                     response.associate { (it.quote ?: "") to (it.rate ?: 0.0) }
                                         .filter { it.key.isNotEmpty() }
+                                }
+                                PROVIDER_COINGECKO -> {
+                                    val coinGeckoIdsToCode = mutableMapOf<String, String>()
+                                    val coinGeckoIds = CurrenciesCatalog.allCurrencies.mapNotNull {
+                                        when (it.type) {
+                                            is CurrencyType.Crypto -> {
+                                                coinGeckoIdsToCode[it.type.coinGeckoId] = it.code
+
+                                                it.type.coinGeckoId
+                                            }
+                                            else -> null
+                                        }
+                                    }
+
+                                    val allRates = mutableMapOf<String, Double>()
+                                    // CoinGecko allows up to 500 coins per request for simple/price
+                                    coinGeckoIds.chunked(500).forEach { chunk ->
+                                        try {
+                                            val idsString = chunk.joinToString(",")
+                                            val response = NetworkClient.coinGeckoApi.getPrices(idsString)
+                                            response.forEach { (id, prices) ->
+                                                val usdPrice = prices["usd"]
+                                                if (usdPrice != null && usdPrice > 0) {
+                                                    val code = coinGeckoIdsToCode[id] ?: return@forEach
+                                                    // rateToUsd = how much of this currency per 1 USD
+                                                    allRates[code.uppercase()] = 1.0 / usdPrice
+                                                }
+                                            }
+                                        } catch (e: Exception) {
+                                            Log.w(TAG, "Failed to fetch CoinGecko chunk: ${e.message}")
+                                        }
+                                    }
+                                    allRates
                                 }
                                 else -> emptyMap()
                             }

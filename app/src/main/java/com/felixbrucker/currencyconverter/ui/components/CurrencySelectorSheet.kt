@@ -43,7 +43,9 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil3.compose.AsyncImage
 import com.felixbrucker.currencyconverter.model.Currency
+import com.felixbrucker.currencyconverter.model.CurrencyType
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -207,10 +209,16 @@ private fun CurrencyListItem(
                     .clip(CircleShape)
                     .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f))
             ) {
-                Text(
-                    text = currency.flag,
-                    fontSize = 22.sp
-                )
+                when (currency.type) {
+                    is CurrencyType.Fiat -> Text(
+                        text = currency.type.flagEmoji,
+                        fontSize = 22.sp
+                    )
+                    is CurrencyType.Crypto -> AsyncImage(
+                        model = currency.type.imageUrl,
+                        contentDescription = "${currency.name} Icon",
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.width(14.dp))
@@ -245,7 +253,7 @@ private fun CurrencyListItem(
                 }
 
                 Text(
-                    text = currency.name + if (currency.country.isNotBlank() && !currency.isCrypto) " • ${currency.country}" else "",
+                    text = currency.name + if (!currency.country.isNullOrBlank()) " • ${currency.country}" else "",
                     style = MaterialTheme.typography.bodySmall.copy(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     ),

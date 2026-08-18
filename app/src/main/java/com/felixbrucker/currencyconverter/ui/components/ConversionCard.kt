@@ -53,7 +53,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil3.compose.AsyncImage
 import com.felixbrucker.currencyconverter.model.ConversionRowState
+import com.felixbrucker.currencyconverter.model.CurrencyType
 import kotlinx.coroutines.delay
 
 @Composable
@@ -155,10 +157,16 @@ fun ConversionCard(
                                 CircleShape
                             )
                     ) {
-                        Text(
-                            text = rowState.currency.flag,
-                            fontSize = 22.sp
-                        )
+                        when (rowState.currency.type) {
+                            is CurrencyType.Fiat -> Text(
+                                text = rowState.currency.type.flagEmoji,
+                                fontSize = 22.sp
+                            )
+                            is CurrencyType.Crypto -> AsyncImage(
+                                model = rowState.currency.type.imageUrl,
+                                contentDescription = "${rowState.currency.name} Icon",
+                            )
+                        }
                     }
 
                     Spacer(modifier = Modifier.width(12.dp))

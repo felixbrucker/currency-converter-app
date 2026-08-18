@@ -62,6 +62,8 @@ fun ConversionScreen(
     modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val allCurrenciesWithSelection by viewModel.allCurrenciesWithSelection.collectAsStateWithLifecycle()
+    val countdownSeconds by viewModel.countdownSeconds.collectAsStateWithLifecycle()
 
     var showCurrencySheet by remember { mutableStateOf(false) }
     var showRatesInfoDialog by remember { mutableStateOf(false) }
@@ -83,7 +85,7 @@ fun ConversionScreen(
         ) {
             // Live countdown & last updated header
             UpdateTimerHeader(
-                countdownSeconds = uiState.countdownSeconds,
+                countdownSeconds = countdownSeconds,
                 maxCountdownSeconds = uiState.maxCountdownSeconds,
                 lastUpdatedTimestamp = uiState.lastUpdatedTimestamp,
                 isOnline = uiState.isOnline,
@@ -246,7 +248,7 @@ fun ConversionScreen(
     // Modal Sheets and Dialogs
     if (showCurrencySheet) {
         CurrencySelectorSheet(
-            currencies = uiState.allCurrenciesWithSelection,
+            currencies = allCurrenciesWithSelection,
             searchQuery = uiState.searchQuery,
             sheetState = sheetState,
             onSearchChange = { viewModel.onSearchQueryChanged(it) },

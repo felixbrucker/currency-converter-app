@@ -16,11 +16,18 @@ object CurrencyFormatter {
         if (amount.isNaN() || amount.isInfinite()) return "0"
         return when {
             currency.isCrypto -> {
+                val precision = currency.decimalPlaces
                 when {
                     amount >= 1000 -> DecimalFormat("#,##0.00", symbols).format(amount)
                     amount >= 1 -> DecimalFormat("#,##0.0000", symbols).format(amount)
-                    amount >= 0.0001 -> DecimalFormat("0.000000", symbols).format(amount)
-                    amount > 0 -> DecimalFormat("0.00000000", symbols).format(amount)
+                    amount >= 0.0001 -> {
+                        val pattern = "0." + "0".repeat(precision.coerceIn(2, 8))
+                        DecimalFormat(pattern, symbols).format(amount)
+                    }
+                    amount > 0 -> {
+                        val pattern = "0." + "0".repeat(precision.coerceIn(2, 10))
+                        DecimalFormat(pattern, symbols).format(amount)
+                    }
                     else -> "0.00"
                 }
             }

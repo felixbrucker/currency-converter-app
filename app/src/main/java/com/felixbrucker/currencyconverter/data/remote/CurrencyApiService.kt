@@ -43,6 +43,14 @@ interface FrankfurterApiService {
     suspend fun getLatestRates(@Query("base") base: String = "USD"): List<FrankfurterRate>
 }
 
+interface CoinGeckoApiService {
+    @GET("simple/price")
+    suspend fun getPrices(
+        @Query("ids") ids: String,
+        @Query("vs_currencies") vsCurrencies: String = "usd"
+    ): Map<String, Map<String, Double>>
+}
+
 object NetworkClient {
     private val moshi = Moshi.Builder()
         .addLast(KotlinJsonAdapterFactory())
@@ -72,5 +80,14 @@ object NetworkClient {
             .addConverterFactory(MoshiConverterFactory.create(moshi))
             .build()
             .create(FrankfurterApiService::class.java)
+    }
+
+    val coinGeckoApi: CoinGeckoApiService by lazy {
+        Retrofit.Builder()
+            .baseUrl("https://api.coingecko.com/api/v3/")
+            .client(okHttpClient)
+            .addConverterFactory(MoshiConverterFactory.create(moshi))
+            .build()
+            .create(CoinGeckoApiService::class.java)
     }
 }

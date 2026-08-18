@@ -32,6 +32,7 @@ secretsGradlePlugin = "2.0.1"
 googleServices = "4.5.0"
 workRuntimeKtx = "2.11.2"
 navigationCompose = "2.9.8"
+coil = "3.5.0"
 
 
 [libraries]
@@ -76,6 +77,8 @@ roborazzi-junit-rule = { group = "io.github.takahirom.roborazzi", name = "robora
 firebase-bom = { group = "com.google.firebase", name = "firebase-bom", version.ref = "firebaseBom" }
 firebase-ai = { group = "com.google.firebase", name = "firebase-ai" }
 firebase-appcheck-recaptcha = { group = "com.google.firebase", name = "firebase-appcheck-recaptcha" }
+coil-compose = { group = "io.coil-kt.coil3", name = "coil-compose", version.ref = "coil" }
+coil-network-okhttp = { group = "io.coil-kt.coil3", name = "coil-network-okhttp", version.ref = "coil" }
 
 
 [plugins]
