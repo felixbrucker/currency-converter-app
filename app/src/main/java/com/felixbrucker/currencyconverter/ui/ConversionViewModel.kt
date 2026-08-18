@@ -67,6 +67,7 @@ class ConversionViewModel(application: Application) : AndroidViewModel(applicati
         viewModelScope.launch {
             repository.initializeIfEmpty()
             loadSettings()
+            refreshRates(showLoadingIndicator = true)
             startCountdownTimer()
         }
     }
@@ -142,7 +143,8 @@ class ConversionViewModel(application: Application) : AndroidViewModel(applicati
 
         val activeCurrency = CurrenciesCatalog.find(activeCode)
             ?: Currency(activeCode, activeCode, "$", "🌐")
-        val activeRateToUsd = rates[activeCode.uppercase()]?.rateToUsd ?: 1.0
+        val activeRateEntity = rates[activeCode.uppercase()]
+        val activeRateToUsd = activeRateEntity?.rateToUsd
 
         val effectiveAmount: Double = if (isHint || activeInput.isBlank()) {
             activeHint.replace(",", "").toDoubleOrNull() ?: 1.0
@@ -158,37 +160,54 @@ class ConversionViewModel(application: Application) : AndroidViewModel(applicati
                 ?: Currency(userCurrency.code, userCurrency.code, "$", "🌐")
             val isFocused = currency.code.equals(activeCode, ignoreCase = true)
             val rateEntity = rates[currency.code.uppercase()]
-            val currencyRateToUsd = rateEntity?.rateToUsd ?: 1.0
-            val isStale = rateEntity == null || (now - rateEntity.lastUpdated) > staleThreshold
+            val currencyRateToUsd = rateEntity?.rateToUsd
+            val isStale = rateEntity != null && (now - rateEntity.lastUpdated) > staleThreshold
+            val isRateUnavailable = rateEntity == null
 
-            val convertedAmount = if (activeRateToUsd > 0) {
+            val convertedAmount = if (activeRateToUsd != null && currencyRateToUsd != null && activeRateToUsd > 0) {
                 effectiveAmount * (currencyRateToUsd / activeRateToUsd)
             } else {
-                0.0
+                null
             }
 
-            val unitExchangeRate = if (activeRateToUsd > 0) {
+            val unitExchangeRate = if (activeRateToUsd != null && currencyRateToUsd != null && activeRateToUsd > 0) {
                 currencyRateToUsd / activeRateToUsd
             } else {
-                1.0
+                null
             }
 
             val displayedText = if (isFocused) {
                 if (activeInput.isNotBlank()) activeInput
                 else CurrencyFormatter.formatAmount(effectiveAmount, currency)
             } else {
-                CurrencyFormatter.formatAmount(convertedAmount, currency)
+                if (convertedAmount != null) {
+                    CurrencyFormatter.formatAmount(convertedAmount, currency)
+                } else {
+                    "N/A"
+                }
             }
 
             val hintText = if (isFocused) {
                 if (activeInput.isNotBlank()) activeInput
                 else CurrencyFormatter.formatAmount(effectiveAmount, currency)
             } else {
-                CurrencyFormatter.formatAmount(convertedAmount, currency)
+                if (convertedAmount != null) {
+                    CurrencyFormatter.formatAmount(convertedAmount, currency)
+                } else {
+                    "N/A"
+                }
             }
 
-            val rateFormatted = CurrencyFormatter.formatRate(unitExchangeRate, currency)
-            val baseRateText = "1 ${activeCurrency.code} = $rateFormatted ${currency.code}"
+            val rateFormatted = if (unitExchangeRate != null) {
+                CurrencyFormatter.formatRate(unitExchangeRate, currency)
+            } else {
+                "N/A"
+            }
+            val baseRateText = if (unitExchangeRate != null) {
+                "1 ${activeCurrency.code} = $rateFormatted ${currency.code}"
+            } else {
+                "Rate unavailable"
+            }
 
             ConversionRowState(
                 currency = currency,
@@ -199,7 +218,8 @@ class ConversionViewModel(application: Application) : AndroidViewModel(applicati
                 isHintActive = isFocused && isHint,
                 baseExchangeRateText = baseRateText,
                 displayOrder = userCurrency.displayOrder,
-                isStale = isStale
+                isStale = isStale,
+                isRateUnavailable = isRateUnavailable
             )
         }
 

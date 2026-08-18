@@ -173,27 +173,31 @@ fun ConversionCard(
                                     color = MaterialTheme.colorScheme.onSurface
                                 )
                             )
-                            if (rowState.isStale) {
+                            if (rowState.isStale || rowState.isRateUnavailable) {
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
                                     modifier = Modifier
-                                        .background(Color(0xFFFBC02D).copy(alpha = 0.1f), RoundedCornerShape(4.dp))
+                                        .background(
+                                            if (rowState.isRateUnavailable) MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.1f)
+                                            else Color(0xFFFBC02D).copy(alpha = 0.1f),
+                                            RoundedCornerShape(4.dp)
+                                        )
                                         .padding(horizontal = 4.dp, vertical = 2.dp)
                                 ) {
                                     Icon(
                                         imageVector = Icons.Default.Warning,
                                         contentDescription = null,
-                                        tint = Color(0xFFFBC02D),
+                                        tint = if (rowState.isRateUnavailable) MaterialTheme.colorScheme.error else Color(0xFFFBC02D),
                                         modifier = Modifier.size(12.dp)
                                     )
                                     Spacer(modifier = Modifier.width(4.dp))
                                     Text(
-                                        text = "STALE RATE",
+                                        text = if (rowState.isRateUnavailable) "RATE UNAVAILABLE" else "STALE RATE",
                                         style = MaterialTheme.typography.labelSmall.copy(
                                             fontWeight = FontWeight.Bold,
                                             fontSize = 9.sp,
-                                            color = Color(0xFFFBC02D)
+                                            color = if (rowState.isRateUnavailable) MaterialTheme.colorScheme.error else Color(0xFFFBC02D)
                                         )
                                     )
                                 }
@@ -329,7 +333,11 @@ fun ConversionCard(
                         text = rowState.baseExchangeRateText,
                         style = MaterialTheme.typography.bodySmall.copy(
                             fontSize = 11.sp,
-                            color = if (rowState.isStale) Color(0xFFFBC02D) else MaterialTheme.colorScheme.onSurfaceVariant
+                            color = when {
+                                rowState.isRateUnavailable -> MaterialTheme.colorScheme.error
+                                rowState.isStale -> Color(0xFFFBC02D)
+                                else -> MaterialTheme.colorScheme.onSurfaceVariant
+                            }
                         ),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,

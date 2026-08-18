@@ -40,13 +40,7 @@ class CurrencyRepository(
     }
 
     val ratesFlow: Flow<Map<String, ExchangeRateEntity>> = dao.getAllRates().map { entities ->
-        if (entities.isEmpty()) {
-            CurrenciesCatalog.defaultUsdRates.mapValues { (code, rate) ->
-                ExchangeRateEntity(code, rate, 0L)
-            }
-        } else {
-            entities.associateBy { it.code }
-        }
+        entities.associateBy { it.code }
     }
 
     val userCurrenciesFlow: Flow<List<UserCurrencyEntity>> = dao.getUserCurrencies()
@@ -56,16 +50,6 @@ class CurrencyRepository(
     }
 
     suspend fun initializeIfEmpty() = withContext(Dispatchers.IO) {
-        val existingRates = dao.getAllRates().firstOrNull()
-        if (existingRates.isNullOrEmpty()) {
-            val now = System.currentTimeMillis()
-            val initialEntities = CurrenciesCatalog.defaultUsdRates.map { (code, rate) ->
-                ExchangeRateEntity(code = code, rateToUsd = rate, lastUpdated = now)
-            }
-            dao.insertRates(initialEntities)
-            dao.setSetting(AppSettingEntity(KEY_LAST_SYNC_TIME, now.toString()))
-        }
-
         val existingUserCurrencies = dao.getUserCurrencies().firstOrNull()
         if (existingUserCurrencies.isNullOrEmpty()) {
             val initialUserCurrencies = CurrenciesCatalog.defaultSelectedCodes.mapIndexed { index, code ->
@@ -110,12 +94,7 @@ class CurrencyRepository(
                 }
             }
 
-            // Fill with default rates for any missing currency/crypto
-            for ((code, defaultRate) in CurrenciesCatalog.defaultUsdRates) {
-                if (!fetchedRates.containsKey(code)) {
-                    fetchedRates[code] = defaultRate
-                }
-            }
+            // rates missing from the API will not be filled with defaults anymore.
 
             if (fetchedRates.isNotEmpty()) {
                 val now = System.currentTimeMillis()

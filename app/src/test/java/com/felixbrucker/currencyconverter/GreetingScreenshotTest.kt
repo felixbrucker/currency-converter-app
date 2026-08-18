@@ -37,7 +37,9 @@ class GreetingScreenshotTest {
       hintAmountText = "1.00",
       isHintActive = false,
       baseExchangeRateText = "",
-      displayOrder = 0
+      displayOrder = 0,
+      isStale = false,
+      isRateUnavailable = false
     )
 
     composeTestRule.setContent {
