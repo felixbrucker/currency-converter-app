@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.felixbrucker.currencyconverter.data.CurrenciesCatalog
+import com.felixbrucker.currencyconverter.data.local.ExchangeRateEntity
 import com.felixbrucker.currencyconverter.data.local.UserCurrencyEntity
 import com.felixbrucker.currencyconverter.data.repository.CurrencyRepository
 import com.felixbrucker.currencyconverter.data.worker.ExchangeRateSyncWorker
@@ -118,7 +119,7 @@ class ConversionViewModel(application: Application) : AndroidViewModel(applicati
         @Suppress("UNCHECKED_CAST")
         val userCurrencies = params[idx++] as List<UserCurrencyEntity>
         @Suppress("UNCHECKED_CAST")
-        val rates = params[idx++] as Map<String, Double>
+        val rates = params[idx++] as Map<String, ExchangeRateEntity>
         val lastUpdated = params[idx++] as Long
         val isRef = params[idx++] as Boolean
         val refMsg = params[idx++] as String?
@@ -140,7 +141,7 @@ class ConversionViewModel(application: Application) : AndroidViewModel(applicati
 
         val activeCurrency = CurrenciesCatalog.find(activeCode)
             ?: Currency(activeCode, activeCode, "$", "🌐")
-        val activeRateToUsd = rates[activeCode.uppercase()] ?: 1.0
+        val activeRateToUsd = rates[activeCode.uppercase()]?.rateToUsd ?: 1.0
 
         val effectiveAmount: Double = if (isHint || activeInput.isBlank()) {
             activeHint.replace(",", "").toDoubleOrNull() ?: 1.0
@@ -148,11 +149,16 @@ class ConversionViewModel(application: Application) : AndroidViewModel(applicati
             activeInput.replace(",", "").toDoubleOrNull() ?: 0.0
         }
 
+        val now = System.currentTimeMillis()
+        val staleThreshold = 24 * 60 * 60 * 1000L
+
         val rows = selectedUserCurrencies.map { userCurrency ->
             val currency = CurrenciesCatalog.find(userCurrency.code)
                 ?: Currency(userCurrency.code, userCurrency.code, "$", "🌐")
             val isFocused = currency.code.equals(activeCode, ignoreCase = true)
-            val currencyRateToUsd = rates[currency.code.uppercase()] ?: 1.0
+            val rateEntity = rates[currency.code.uppercase()]
+            val currencyRateToUsd = rateEntity?.rateToUsd ?: 1.0
+            val isStale = rateEntity == null || (now - rateEntity.lastUpdated) > staleThreshold
 
             val convertedAmount = if (activeRateToUsd > 0) {
                 effectiveAmount * (currencyRateToUsd / activeRateToUsd)
@@ -191,7 +197,8 @@ class ConversionViewModel(application: Application) : AndroidViewModel(applicati
                 hintAmountText = hintText,
                 isHintActive = isFocused && isHint,
                 baseExchangeRateText = baseRateText,
-                displayOrder = userCurrency.displayOrder
+                displayOrder = userCurrency.displayOrder,
+                isStale = isStale
             )
         }
 

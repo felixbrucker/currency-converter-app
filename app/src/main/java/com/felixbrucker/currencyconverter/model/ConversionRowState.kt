@@ -8,5 +8,6 @@ data class ConversionRowState(
     val hintAmountText: String, // placeholder when focused and cleared
     val isHintActive: Boolean, // whether the input is currently showing the hint (cleared on focus)
     val baseExchangeRateText: String, // e.g. "1 NZD = 0.5922 USD"
-    val displayOrder: Int
+    val displayOrder: Int,
+    val isStale: Boolean = false
 )

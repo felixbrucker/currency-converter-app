@@ -39,11 +39,13 @@ class CurrencyRepository(
         }
     }
 
-    val ratesFlow: Flow<Map<String, Double>> = dao.getAllRates().map { entities ->
+    val ratesFlow: Flow<Map<String, ExchangeRateEntity>> = dao.getAllRates().map { entities ->
         if (entities.isEmpty()) {
-            CurrenciesCatalog.defaultUsdRates
+            CurrenciesCatalog.defaultUsdRates.mapValues { (code, rate) ->
+                ExchangeRateEntity(code, rate, 0L)
+            }
         } else {
-            entities.associate { it.code to it.rateToUsd }
+            entities.associateBy { it.code }
         }
     }
 
