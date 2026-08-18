@@ -86,7 +86,6 @@ fun ConversionScreen(
                 countdownSeconds = uiState.countdownSeconds,
                 maxCountdownSeconds = uiState.maxCountdownSeconds,
                 lastUpdatedTimestamp = uiState.lastUpdatedTimestamp,
-                isRefreshing = uiState.isRefreshing,
                 isOnline = uiState.isOnline,
                 onSearchClick = { showCurrencySheet = true },
                 onSettingsClick = onNavigateToSettings

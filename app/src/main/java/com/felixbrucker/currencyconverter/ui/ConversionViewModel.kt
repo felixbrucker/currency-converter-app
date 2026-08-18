@@ -91,7 +91,7 @@ class ConversionViewModel(application: Application) : AndroidViewModel(applicati
                     delay(1000)
                     _countdownSeconds.value -= 1
                 }
-                refreshRates()
+                refreshRates(showLoadingIndicator = false)
             }
         }
     }
@@ -323,11 +323,15 @@ class ConversionViewModel(application: Application) : AndroidViewModel(applicati
         _searchQuery.value = query
     }
 
-    fun refreshRates() {
+    fun refreshRates(showLoadingIndicator: Boolean = true) {
         viewModelScope.launch {
-            _isRefreshing.value = true
+            if (showLoadingIndicator) {
+                _isRefreshing.value = true
+            }
             val result = repository.refreshRates()
-            _isRefreshing.value = false
+            if (showLoadingIndicator) {
+                _isRefreshing.value = false
+            }
             if (result.isSuccess) {
                 _isOnline.value = true
                 _refreshMessage.value = "Updated rates successfully"

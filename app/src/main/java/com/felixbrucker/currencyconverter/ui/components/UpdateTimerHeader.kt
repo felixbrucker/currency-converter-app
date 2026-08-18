@@ -32,7 +32,6 @@ fun UpdateTimerHeader(
     countdownSeconds: Int,
     maxCountdownSeconds: Int,
     lastUpdatedTimestamp: Long,
-    isRefreshing: Boolean,
     isOnline: Boolean,
     onSearchClick: () -> Unit,
     onSettingsClick: () -> Unit,
@@ -86,7 +85,7 @@ fun UpdateTimerHeader(
 
             Column {
                 Text(
-                    text = if (isRefreshing) "Updating rates..." else "Rates",
+                    text = "Rates",
                     style = MaterialTheme.typography.titleSmall.copy(
                         fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.onBackground,
