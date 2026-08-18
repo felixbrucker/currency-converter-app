@@ -19,6 +19,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlin.time.Duration.Companion.seconds
 
 data class ConversionUiState(
     val rows: List<ConversionRowState> = emptyList(),
@@ -71,9 +72,9 @@ class ConversionViewModel(application: Application) : AndroidViewModel(applicati
     }
 
     private suspend fun loadSettings() {
-        val bgEn = repository.getSetting(CurrencyRepository.KEY_BG_SYNC_ENABLED)?.toBooleanStrictOrNull() ?: true
-        val bgHours = repository.getSetting(CurrencyRepository.KEY_BG_SYNC_INTERVAL_HOURS)?.toLongOrNull() ?: 4L
-        val autoMins = repository.getSetting(CurrencyRepository.KEY_AUTO_REFRESH_MINUTES)?.toIntOrNull() ?: 3
+        val bgEn = repository.getSetting(CurrencyRepository.KEY_BG_SYNC_ENABLED)?.toBooleanStrictOrNull() ?: false
+        val bgHours = repository.getSetting(CurrencyRepository.KEY_BG_SYNC_INTERVAL_HOURS)?.toLongOrNull() ?: 12L
+        val autoMins = repository.getSetting(CurrencyRepository.KEY_AUTO_REFRESH_MINUTES)?.toIntOrNull() ?: 5
 
         _bgSyncEnabled.value = bgEn
         _bgSyncIntervalHours.value = bgHours
@@ -89,7 +90,7 @@ class ConversionViewModel(application: Application) : AndroidViewModel(applicati
                 _countdownSeconds.value = totalSeconds
 
                 while (_countdownSeconds.value > 0) {
-                    delay(1000)
+                    delay(1.seconds)
                     _countdownSeconds.value -= 1
                 }
                 refreshRates(showLoadingIndicator = false)
