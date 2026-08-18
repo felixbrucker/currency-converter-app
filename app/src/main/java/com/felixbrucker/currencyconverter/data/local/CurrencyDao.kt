@@ -40,10 +40,10 @@ interface CurrencyDao {
     @Query("DELETE FROM user_currencies")
     suspend fun clearUserCurrencies()
 
-    @Query("SELECT * FROM app_settings WHERE key = :key")
+    @Query("SELECT * FROM app_settings WHERE `key` = :key")
     fun getSettingFlow(key: String): Flow<AppSettingEntity?>
 
-    @Query("SELECT * FROM app_settings WHERE key = :key")
+    @Query("SELECT * FROM app_settings WHERE `key` = :key")
     suspend fun getSetting(key: String): AppSettingEntity?
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
