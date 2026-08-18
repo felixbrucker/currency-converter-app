@@ -76,9 +76,9 @@ class CurrencyRepository(
 
         val bgEnabled = dao.getSetting(KEY_BG_SYNC_ENABLED)
         if (bgEnabled == null) {
-            dao.setSetting(AppSettingEntity(KEY_BG_SYNC_ENABLED, "true"))
-            dao.setSetting(AppSettingEntity(KEY_BG_SYNC_INTERVAL_HOURS, "4"))
-            dao.setSetting(AppSettingEntity(KEY_AUTO_REFRESH_MINUTES, "3"))
+            dao.setSetting(AppSettingEntity(KEY_BG_SYNC_ENABLED, "false"))
+            dao.setSetting(AppSettingEntity(KEY_BG_SYNC_INTERVAL_HOURS, "12"))
+            dao.setSetting(AppSettingEntity(KEY_AUTO_REFRESH_MINUTES, "5"))
         }
     }
 
