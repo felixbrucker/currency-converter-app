@@ -16,3 +16,7 @@
 local.properties
 .env
 debug.keystore
+gradle/wrapper
+gradle/gradle-daemon-jvm.properties
+gradlew*
+.idea
