@@ -34,6 +34,17 @@ android {
       keyAlias = "main"
       keyPassword = "test1234"
     }
+    create("release") {
+      val keystorePath = System.getenv("KEYSTORE_PATH")
+      storeFile = if (!keystorePath.isNullOrBlank() && file(keystorePath).exists()) {
+        file(keystorePath)
+      } else {
+        file("${rootDir}/release.keystore")
+      }
+      storePassword = System.getenv("KEYSTORE_PASSWORD")
+      keyAlias = System.getenv("KEY_ALIAS")
+      keyPassword = System.getenv("KEY_PASSWORD")
+    }
   }
 
   buildTypes {
