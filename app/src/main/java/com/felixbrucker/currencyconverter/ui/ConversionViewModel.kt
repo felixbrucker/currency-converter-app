@@ -84,9 +84,15 @@ class ConversionViewModel(application: Application) : AndroidViewModel(applicati
         val bgHours = repository.getSetting(CurrencyRepository.KEY_BG_SYNC_INTERVAL_HOURS)?.toLongOrNull() ?: 12L
         val autoMins = repository.getSetting(CurrencyRepository.KEY_AUTO_REFRESH_MINUTES)?.toIntOrNull() ?: 5
 
+        val activeCode = repository.getSetting(CurrencyRepository.KEY_ACTIVE_CURRENCY_CODE) ?: "USD"
+        val activeAmount = repository.getSetting(CurrencyRepository.KEY_ACTIVE_INPUT_AMOUNT) ?: "1.00"
+
         _bgSyncEnabled.value = bgEn
         _bgSyncIntervalHours.value = bgHours
         _autoRefreshMinutes.value = autoMins
+
+        _activeCurrencyCode.value = activeCode
+        _activeHintAmount.value = activeAmount
     }
 
     private fun startCountdownTimer() {
@@ -294,16 +300,28 @@ class ConversionViewModel(application: Application) : AndroidViewModel(applicati
         val activeCurrency = CurrenciesCatalog.find(code) ?: return
         val formatted = CurrencyFormatter.formatAmount(cleanAmount, activeCurrency)
 
+        val newHint = formatted.replace(",", "")
         _activeCurrencyCode.value = code
-        _activeHintAmount.value = formatted.replace(",", "")
+        _activeHintAmount.value = newHint
         _activeInputText.value = ""
         _isHintActive.value = true
+
+        viewModelScope.launch {
+            repository.setSetting(CurrencyRepository.KEY_ACTIVE_CURRENCY_CODE, code)
+            repository.setSetting(CurrencyRepository.KEY_ACTIVE_INPUT_AMOUNT, newHint)
+        }
     }
 
     fun onAmountInputChanged(input: String) {
         val cleaned = CurrencyFormatter.cleanInput(input)
         _activeInputText.value = cleaned
         _isHintActive.value = cleaned.isBlank()
+
+        viewModelScope.launch {
+            if (cleaned.isNotBlank()) {
+                repository.setSetting(CurrencyRepository.KEY_ACTIVE_INPUT_AMOUNT, cleaned)
+            }
+        }
     }
 
     fun onFinishInput() {
@@ -315,7 +333,11 @@ class ConversionViewModel(application: Application) : AndroidViewModel(applicati
                     .find(_activeCurrencyCode.value)
                     ?.let { activeCurrency ->
                         val formatted = CurrencyFormatter.formatAmount(parsed, activeCurrency)
-                        _activeHintAmount.value = formatted.replace(",", "")
+                        val newHint = formatted.replace(",", "")
+                        _activeHintAmount.value = newHint
+                        viewModelScope.launch {
+                            repository.setSetting(CurrencyRepository.KEY_ACTIVE_INPUT_AMOUNT, newHint)
+                        }
                     }
             }
         }

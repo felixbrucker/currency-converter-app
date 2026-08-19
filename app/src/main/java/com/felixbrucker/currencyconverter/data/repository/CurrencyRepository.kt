@@ -40,6 +40,8 @@ class CurrencyRepository(
         const val KEY_BG_SYNC_INTERVAL_HOURS = "setting_bg_sync_interval_hours"
         const val KEY_AUTO_REFRESH_MINUTES = "setting_auto_refresh_minutes"
         const val KEY_LAST_SYNC_TIME = "setting_last_sync_time"
+        const val KEY_ACTIVE_CURRENCY_CODE = "setting_active_currency_code"
+        const val KEY_ACTIVE_INPUT_AMOUNT = "setting_active_input_amount"
 
         @Volatile
         private var INSTANCE: CurrencyRepository? = null
@@ -99,6 +101,8 @@ class CurrencyRepository(
             dao.setSetting(AppSettingEntity(KEY_BG_SYNC_ENABLED, "false"))
             dao.setSetting(AppSettingEntity(KEY_BG_SYNC_INTERVAL_HOURS, "12"))
             dao.setSetting(AppSettingEntity(KEY_AUTO_REFRESH_MINUTES, "5"))
+            dao.setSetting(AppSettingEntity(KEY_ACTIVE_CURRENCY_CODE, "USD"))
+            dao.setSetting(AppSettingEntity(KEY_ACTIVE_INPUT_AMOUNT, "1.00"))
         }
     }
 
