@@ -17,6 +17,7 @@ interface ConnectivityObserver {
     enum class Status {
         Available,
         Unavailable,
+        Lost
     }
 }
 
@@ -35,9 +36,26 @@ class NetworkConnectivityObserver(
                     launch { send(ConnectivityObserver.Status.Available) }
                 }
 
+                override fun onLost(network: Network) {
+                    super.onLost(network)
+                    launch { send(ConnectivityObserver.Status.Lost) }
+                }
+
                 override fun onUnavailable() {
                     super.onUnavailable()
                     launch { send(ConnectivityObserver.Status.Unavailable) }
+                }
+
+                override fun onCapabilitiesChanged(
+                    network: Network,
+                    networkCapabilities: NetworkCapabilities
+                ) {
+                    super.onCapabilitiesChanged(network, networkCapabilities)
+                    if (networkCapabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)) {
+                        launch { send(ConnectivityObserver.Status.Available) }
+                    } else {
+                        launch { send(ConnectivityObserver.Status.Unavailable) }
+                    }
                 }
             }
 
