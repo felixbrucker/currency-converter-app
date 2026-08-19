@@ -33,6 +33,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -73,13 +74,22 @@ fun ConversionCard(
 
     val isActive = rowState.isFocused
 
+    // Track if we've already performed the initial focus for this row while it's active.
+    // Using rememberSaveable ensures this persists across navigation/process death,
+    // preventing auto-focus when returning to the screen.
+    var hasRequestedInitialFocus by rememberSaveable(rowState.currency.code) { mutableStateOf(false) }
+
     // Automatically request focus into the text field on the first tap when this row becomes active
     LaunchedEffect(isActive) {
-        if (isActive) {
+        if (isActive && !hasRequestedInitialFocus) {
             delay(50.milliseconds)
             try {
                 focusRequester.requestFocus()
+                hasRequestedInitialFocus = true
             } catch (_: Exception) {}
+        } else if (!isActive) {
+            // Reset when the row is no longer active so it can be focused again if re-selected later
+            hasRequestedInitialFocus = false
         }
     }
 
