@@ -87,6 +87,14 @@ secrets {
 
 googleServices { missingGoogleServicesStrategy = MissingGoogleServicesStrategy.WARN }
 
+androidComponents {
+  onVariants(selector().withBuildType("release")) { variant ->
+    variant.outputs.forEach { output ->
+      output.outputFileName.set("currency-converter-${output.versionName.get()}.apk")
+    }
+  }
+}
+
 // Some unused dependencies are commented out below instead of being removed.
 // This makes it easy to add them back in the future if needed.
 dependencies {
