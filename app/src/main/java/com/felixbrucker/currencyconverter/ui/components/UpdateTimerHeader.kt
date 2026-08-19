@@ -16,6 +16,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.WifiOff
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -81,6 +82,20 @@ fun UpdateTimerHeader(
                         color = MaterialTheme.colorScheme.primary,
                         strokeWidth = 3.5.dp,
                     )
+                } else if (!isOnline) {
+                    CircularProgressIndicator(
+                        progress = { 1f },
+                        modifier = Modifier.size(40.dp),
+                        color = MaterialTheme.colorScheme.error.copy(alpha = 0.5f),
+                        trackColor = MaterialTheme.colorScheme.error.copy(alpha = 0.1f),
+                        strokeWidth = 3.5.dp,
+                    )
+                    Icon(
+                        imageVector = Icons.Default.WifiOff,
+                        contentDescription = "Offline",
+                        tint = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.size(16.dp)
+                    )
                 } else {
                     CircularProgressIndicator(
                         progress = { animatedProgress },
@@ -103,14 +118,33 @@ fun UpdateTimerHeader(
             Spacer(modifier = Modifier.width(12.dp))
 
             Column {
-                Text(
-                    text = "Rates",
-                    style = MaterialTheme.typography.titleSmall.copy(
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onBackground,
-                        fontSize = 14.sp
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = "Rates",
+                        style = MaterialTheme.typography.titleSmall.copy(
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onBackground,
+                            fontSize = 14.sp
+                        )
                     )
-                )
+                    if (!isOnline) {
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Surface(
+                            color = MaterialTheme.colorScheme.errorContainer,
+                            shape = MaterialTheme.shapes.extraSmall
+                        ) {
+                            Text(
+                                text = "OFFLINE",
+                                modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp),
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontSize = 8.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onErrorContainer
+                                )
+                            )
+                        }
+                    }
+                }
 
                 Text(
                     text = "Last updated ${DateTimeFormatter.formatRelative(lastUpdatedTimestamp)}",

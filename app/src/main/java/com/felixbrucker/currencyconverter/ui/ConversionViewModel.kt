@@ -16,6 +16,8 @@ import com.felixbrucker.currencyconverter.model.ConversionRowState
 import com.felixbrucker.currencyconverter.model.Currency
 import com.felixbrucker.currencyconverter.model.CurrencyType
 import com.felixbrucker.currencyconverter.util.CurrencyFormatter
+import com.felixbrucker.currencyconverter.util.ConnectivityObserver
+import com.felixbrucker.currencyconverter.util.NetworkConnectivityObserver
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -79,13 +81,31 @@ class ConversionViewModel(application: Application) : AndroidViewModel(applicati
     private val _maxCountdownSeconds = MutableStateFlow(300)
 
     private var countdownJob: Job? = null
+    private val connectivityObserver = NetworkConnectivityObserver(application)
 
     init {
         viewModelScope.launch {
             repository.initializeIfEmpty()
             loadSettings()
-            refreshRates(showLoadingIndicator = true)
+            if (_isOnline.value) {
+                refreshRates(showLoadingIndicator = true)
+            }
             startCountdownTimer()
+        }
+        observeConnectivity()
+    }
+
+    private fun observeConnectivity() {
+        viewModelScope.launch {
+            connectivityObserver.observe().collect { status ->
+                val isOnline = status == ConnectivityObserver.Status.Available
+                val wasOffline = !_isOnline.value
+                _isOnline.value = isOnline
+
+                if (isOnline && wasOffline) {
+                    refreshRates(showLoadingIndicator = false)
+                }
+            }
         }
     }
 
@@ -115,9 +135,18 @@ class ConversionViewModel(application: Application) : AndroidViewModel(applicati
 
                 while (_countdownSeconds.value > 0) {
                     delay(1.seconds)
-                    _countdownSeconds.value -= 1
+                    if (_isOnline.value) {
+                        _countdownSeconds.value -= 1
+                    }
                 }
-                refreshRates(showLoadingIndicator = false)
+
+                if (_isOnline.value) {
+                    refreshRates(showLoadingIndicator = false)
+                } else {
+                    // Wait for online to refresh
+                    while (!_isOnline.value) delay(1.seconds)
+                    refreshRates(showLoadingIndicator = false)
+                }
             }
         }
     }
@@ -384,6 +413,12 @@ class ConversionViewModel(application: Application) : AndroidViewModel(applicati
     }
 
     fun refreshRates(showLoadingIndicator: Boolean = true) {
+        if (!_isOnline.value) {
+            viewModelScope.launch {
+                _uiEvent.emit(UiEvent.ShowSnackbar("Cannot refresh: Device is offline"))
+            }
+            return
+        }
         viewModelScope.launch {
             if (showLoadingIndicator) {
                 _isRefreshing.value = true
@@ -394,13 +429,11 @@ class ConversionViewModel(application: Application) : AndroidViewModel(applicati
             }
             if (result.isSuccess) {
                 val syncResult = result.getOrThrow()
-                _isOnline.value = true
                 if (syncResult.providerErrors.isNotEmpty()) {
                     val error = syncResult.providerErrors.aggregate()
                     _uiEvent.emit(UiEvent.ShowSnackbar("Partial sync: ${error.message}", duration = SnackbarDuration.Long))
                 }
             } else {
-                _isOnline.value = false
                 val error = result.exceptionOrNull()?.message ?: "Unknown error"
                 _uiEvent.emit(UiEvent.ShowSnackbar("Sync failed: $error", duration = SnackbarDuration.Long))
             }
