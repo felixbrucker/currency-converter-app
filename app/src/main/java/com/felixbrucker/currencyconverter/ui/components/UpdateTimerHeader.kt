@@ -29,7 +29,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.felixbrucker.currencyconverter.util.RelativeTimeFormatter
+import com.felixbrucker.currencyconverter.util.DateTimeFormatter
 
 @Composable
 fun UpdateTimerHeader(
@@ -113,7 +113,7 @@ fun UpdateTimerHeader(
                 )
 
                 Text(
-                    text = "Last updated ${RelativeTimeFormatter.format(lastUpdatedTimestamp)}",
+                    text = "Last updated ${DateTimeFormatter.formatRelative(lastUpdatedTimestamp)}",
                     style = MaterialTheme.typography.bodySmall.copy(
                         fontSize = 11.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant

@@ -4,9 +4,10 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.felixbrucker.currencyconverter.data.CurrenciesCatalog
-import com.felixbrucker.currencyconverter.data.local.CurrencyProviderEntity
+import com.felixbrucker.currencyconverter.data.local.ExchangeRateProviderEntity
 import com.felixbrucker.currencyconverter.data.local.ExchangeRateEntity
 import com.felixbrucker.currencyconverter.data.local.UserCurrencyEntity
+import com.felixbrucker.currencyconverter.data.remote.ExchangeRateProvider
 import com.felixbrucker.currencyconverter.data.repository.CurrencyRepository
 import com.felixbrucker.currencyconverter.data.worker.ExchangeRateSyncWorker
 import com.felixbrucker.currencyconverter.model.ConversionRowState
@@ -24,6 +25,8 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlin.text.lowercase
 import kotlin.text.uppercase
+import kotlin.time.Clock.System.now
+import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.seconds
 
 data class ConversionUiState(
@@ -40,7 +43,7 @@ data class ConversionUiState(
     val bgSyncIntervalHours: Long = 12L,
     val autoRefreshMinutes: Int = 5,
     val searchQuery: String = "",
-    val providers: List<CurrencyProviderEntity> = emptyList()
+    val providers: List<Pair<ExchangeRateProviderEntity, ExchangeRateProvider>> = emptyList()
 )
 
 class ConversionViewModel(application: Application) : AndroidViewModel(application) {
@@ -175,7 +178,7 @@ class ConversionViewModel(application: Application) : AndroidViewModel(applicati
         val maxCountdown = params[idx++] as Int
         val search = params[idx++] as String
         @Suppress("UNCHECKED_CAST")
-        val providers = params[idx++] as List<CurrencyProviderEntity>
+        val providers = params[idx++] as List<Pair<ExchangeRateProviderEntity, ExchangeRateProvider>>
 
         val selectedUserCurrencies = userCurrencies
             .filter { it.isSelected }
@@ -191,15 +194,15 @@ class ConversionViewModel(application: Application) : AndroidViewModel(applicati
             activeInput.replace(",", "").toDoubleOrNull() ?: 0.0
         }
 
-        val now = System.currentTimeMillis()
-        val staleThreshold = 24 * 60 * 60 * 1000L
+        val now = now()
+        val staleThreshold = 24.hours
 
         val rows = selectedUserCurrencies.mapNotNull { userCurrency ->
             val currency = CurrenciesCatalog.find(userCurrency.code) ?: return@mapNotNull null
             val isFocused = currency.code.equals(activeCode, ignoreCase = true)
             val rateEntity = rates[currency.code.uppercase()]
             val currencyRateToUsd = rateEntity?.rateToUsd
-            val isStale = rateEntity != null && (now - rateEntity.lastUpdated) > staleThreshold
+            val isStale = rateEntity != null && (now.minus(rateEntity.lastUpdatedAt) > staleThreshold)
             val isRateUnavailable = rateEntity == null
 
             val convertedAmount = if (activeRateToUsd != null && currencyRateToUsd != null && activeRateToUsd > 0) {
@@ -215,8 +218,7 @@ class ConversionViewModel(application: Application) : AndroidViewModel(applicati
             }
 
             val displayedText = if (isFocused) {
-                if (activeInput.isNotBlank()) activeInput
-                else CurrencyFormatter.formatAmount(effectiveAmount, currency)
+                activeInput.ifBlank { CurrencyFormatter.formatAmount(effectiveAmount, currency) }
             } else {
                 if (convertedAmount != null) {
                     CurrencyFormatter.formatAmount(convertedAmount, currency)
@@ -226,8 +228,7 @@ class ConversionViewModel(application: Application) : AndroidViewModel(applicati
             }
 
             val hintText = if (isFocused) {
-                if (activeInput.isNotBlank()) activeInput
-                else CurrencyFormatter.formatAmount(effectiveAmount, currency)
+                activeInput.ifBlank { CurrencyFormatter.formatAmount(effectiveAmount, currency) }
             } else {
                 if (convertedAmount != null) {
                     CurrencyFormatter.formatAmount(convertedAmount, currency)
@@ -275,7 +276,7 @@ class ConversionViewModel(application: Application) : AndroidViewModel(applicati
             bgSyncIntervalHours = bgSyncHrs,
             autoRefreshMinutes = autoMins,
             searchQuery = search,
-            providers = providers
+            providers = providers,
         )
     }.stateIn(
         scope = viewModelScope,
@@ -343,30 +344,6 @@ class ConversionViewModel(application: Application) : AndroidViewModel(applicati
         onReorderCurrencies(updated)
     }
 
-    fun onMoveUp(code: String) {
-        val currentList = uiState.value.rows.map { it.currency.code }.toMutableList()
-        val index = currentList.indexOfFirst { it.equals(code, ignoreCase = true) }
-        if (index > 0) {
-            val item = currentList.removeAt(index)
-            currentList.add(index - 1, item)
-            onReorderCurrencies(currentList)
-        }
-    }
-
-    fun onMoveDown(code: String) {
-        val currentList = uiState.value.rows.map { it.currency.code }.toMutableList()
-        val index = currentList.indexOfFirst { it.equals(code, ignoreCase = true) }
-        if (index >= 0 && index < currentList.lastIndex) {
-            val item = currentList.removeAt(index)
-            currentList.add(index + 1, item)
-            onReorderCurrencies(currentList)
-        }
-    }
-
-    fun onRemoveCurrency(code: String) {
-        onToggleCurrency(code, false)
-    }
-
     fun onSearchQueryChanged(query: String) {
         _searchQuery.value = query
     }
@@ -374,30 +351,6 @@ class ConversionViewModel(application: Application) : AndroidViewModel(applicati
     fun onToggleProvider(name: String, isEnabled: Boolean) {
         viewModelScope.launch {
             repository.toggleProvider(name, isEnabled)
-        }
-    }
-
-    fun onMoveProviderUp(name: String) {
-        val current = uiState.value.providers.map { it.name }.toMutableList()
-        val index = current.indexOf(name)
-        if (index > 0) {
-            val item = current.removeAt(index)
-            current.add(index - 1, item)
-            viewModelScope.launch {
-                repository.updateProvidersOrder(current)
-            }
-        }
-    }
-
-    fun onMoveProviderDown(name: String) {
-        val current = uiState.value.providers.map { it.name }.toMutableList()
-        val index = current.indexOf(name)
-        if (index >= 0 && index < current.lastIndex) {
-            val item = current.removeAt(index)
-            current.add(index + 1, item)
-            viewModelScope.launch {
-                repository.updateProvidersOrder(current)
-            }
         }
     }
 
@@ -442,24 +395,6 @@ class ConversionViewModel(application: Application) : AndroidViewModel(applicati
             _autoRefreshMinutes.value = minutes
             repository.setSetting(CurrencyRepository.KEY_AUTO_REFRESH_MINUTES, minutes.toString())
             startCountdownTimer()
-        }
-    }
-
-    fun resetToDefaults() {
-        viewModelScope.launch {
-            repository.updateCurrenciesOrder(CurrenciesCatalog.defaultSelectedCodes)
-            for (curr in CurrenciesCatalog.allCurrencies) {
-                if (!CurrenciesCatalog.defaultSelectedCodes.contains(curr.code)) {
-                    repository.toggleCurrencySelection(curr.code, false)
-                }
-            }
-            setBgSyncEnabled(true)
-            setBgSyncIntervalHours(4L)
-            setAutoRefreshMinutes(3)
-            _activeCurrencyCode.value = "USD"
-            _activeHintAmount.value = "1.00"
-            _activeInputText.value = ""
-            _isHintActive.value = true
         }
     }
 }

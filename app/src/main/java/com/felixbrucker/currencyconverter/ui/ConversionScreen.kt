@@ -167,17 +167,11 @@ fun ConversionScreen(
                         ) {
                             ConversionCard(
                                 rowState = rowState,
-                                isFirst = index == 0,
-                                isLast = index == uiState.rows.lastIndex,
                                 isDragging = isDragging,
                                 onRowFocus = { code -> viewModel.onRowFocused(code) },
                                 onAmountChange = { input -> viewModel.onAmountInputChanged(input) },
                                 onFinishInput = { viewModel.onFinishInput() },
                                 onCurrencyClick = { showCurrencySheet = true },
-                                onMoveUp = { code -> viewModel.onMoveUp(code) },
-                                onMoveDown = { code -> viewModel.onMoveDown(code) },
-                                onRemove = { code -> viewModel.onRemoveCurrency(code) },
-                                onSetBase = { code -> viewModel.onRowFocused(code) }
                             )
                         }
                     }

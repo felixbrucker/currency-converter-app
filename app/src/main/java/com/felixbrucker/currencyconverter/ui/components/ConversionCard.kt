@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
@@ -26,7 +25,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -57,22 +55,17 @@ import coil3.compose.AsyncImage
 import com.felixbrucker.currencyconverter.model.ConversionRowState
 import com.felixbrucker.currencyconverter.model.CurrencyType
 import kotlinx.coroutines.delay
+import kotlin.time.Duration.Companion.milliseconds
 
 @Composable
 fun ConversionCard(
     rowState: ConversionRowState,
-    isFirst: Boolean,
-    isLast: Boolean,
+    modifier: Modifier = Modifier,
     isDragging: Boolean = false,
     onRowFocus: (String) -> Unit,
     onAmountChange: (String) -> Unit,
     onFinishInput: () -> Unit = {},
     onCurrencyClick: (String) -> Unit,
-    onMoveUp: (String) -> Unit,
-    onMoveDown: (String) -> Unit,
-    onRemove: (String) -> Unit,
-    onSetBase: (String) -> Unit,
-    modifier: Modifier = Modifier
 ) {
     val focusManager = LocalFocusManager.current
     val focusRequester = remember { FocusRequester() }
@@ -83,7 +76,7 @@ fun ConversionCard(
     // Automatically request focus into the text field on the first tap when this row becomes active
     LaunchedEffect(isActive) {
         if (isActive) {
-            delay(50)
+            delay(50.milliseconds)
             try {
                 focusRequester.requestFocus()
             } catch (_: Exception) {}
@@ -183,32 +176,13 @@ fun ConversionCard(
                             )
                             if (rowState.isStale || rowState.isRateUnavailable) {
                                 Spacer(modifier = Modifier.width(6.dp))
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    modifier = Modifier
-                                        .background(
-                                            if (rowState.isRateUnavailable) MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.1f)
-                                            else Color(0xFFFBC02D).copy(alpha = 0.1f),
-                                            RoundedCornerShape(4.dp)
-                                        )
-                                        .padding(horizontal = 4.dp, vertical = 2.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Warning,
-                                        contentDescription = null,
-                                        tint = if (rowState.isRateUnavailable) MaterialTheme.colorScheme.error else Color(0xFFFBC02D),
-                                        modifier = Modifier.size(12.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(4.dp))
-                                    Text(
-                                        text = if (rowState.isRateUnavailable) "RATE UNAVAILABLE" else "STALE RATE",
-                                        style = MaterialTheme.typography.labelSmall.copy(
-                                            fontWeight = FontWeight.Bold,
-                                            fontSize = 9.sp,
-                                            color = if (rowState.isRateUnavailable) MaterialTheme.colorScheme.error else Color(0xFFFBC02D)
-                                        )
-                                    )
-                                }
+                                IndicatorBox(
+                                    text = if (rowState.isRateUnavailable) "RATE UNAVAILABLE" else "STALE RATE",
+                                    backgroundColor = if (rowState.isRateUnavailable) MaterialTheme.colorScheme.errorContainer else Color(0xFFFBC02D).copy(alpha = 0.1f),
+                                    textColor = if (rowState.isRateUnavailable) MaterialTheme.colorScheme.error else Color(0xFFFBC02D),
+                                    iconImageVector = Icons.Default.Warning,
+                                    iconTint = if (rowState.isRateUnavailable) MaterialTheme.colorScheme.error else Color(0xFFFBC02D),
+                                )
                             }
                         }
                         Text(

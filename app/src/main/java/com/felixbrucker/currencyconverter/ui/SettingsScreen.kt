@@ -9,26 +9,20 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.ArrowDownward
-import androidx.compose.material.icons.filled.ArrowUpward
-import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.RestartAlt
+import androidx.compose.material.icons.filled.CurrencyExchange
 import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Switch
@@ -45,7 +39,9 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.felixbrucker.currencyconverter.util.RelativeTimeFormatter
+import com.felixbrucker.currencyconverter.data.remote.CurrencyEnumType
+import com.felixbrucker.currencyconverter.ui.components.IndicatorBox
+import com.felixbrucker.currencyconverter.util.DateTimeFormatter
 import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -68,19 +64,10 @@ fun SettingsScreen(
         topBar = {
             TopAppBar(
                 title = {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = Icons.Default.Sync,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(24.dp)
-                        )
-                        Spacer(modifier = Modifier.width(10.dp))
-                        Text(
-                            text = "Sync & Exchange Settings",
-                            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
-                        )
-                    }
+                    Text(
+                        text = "Settings",
+                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
+                    )
                 },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
@@ -265,7 +252,7 @@ fun SettingsScreen(
                             )
                         )
                         Text(
-                            text = "Manage and prioritize exchange rate providers",
+                            text = "Manage exchange rate providers. Some providers require an api key.",
                             style = MaterialTheme.typography.bodySmall.copy(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -278,69 +265,83 @@ fun SettingsScreen(
                     )
 
                     Column(modifier = Modifier.padding(16.dp)) {
-                        uiState.providers.forEachIndexed { index, provider ->
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = provider.name,
-                                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold)
-                                )
-                                Text(
-                                    text = if (provider.lastSyncTimestamp != null) {
-                                        "Last sync: ${RelativeTimeFormatter.formatExact(provider.lastSyncTimestamp)}"
-                                    } else {
-                                        "Never synced"
-                                    },
-                                    style = MaterialTheme.typography.labelSmall.copy(
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        uiState.providers.forEachIndexed { index, (providerEntity, provider) ->
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Column {
+                                    Text(
+                                        text = providerEntity.name,
+                                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold)
                                     )
-                                )
-                            }
+                                    Text(
+                                        text = if (providerEntity.lastUpdatedAt != null) {
+                                            "Last data update: ${DateTimeFormatter.formatRelative(providerEntity.lastUpdatedAt)}"
+                                        } else {
+                                            "Never synced"
+                                        },
+                                        style = MaterialTheme.typography.labelSmall.copy(
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    )
+                                    if (providerEntity.nextUpdateAt != null) {
+                                        Text(
+                                            text = "Next sync: ${DateTimeFormatter.formatRelative(providerEntity.nextUpdateAt)}",
+                                            style = MaterialTheme.typography.labelSmall.copy(
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        )
+                                    }
+                                }
 
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                IconButton(
-                                    onClick = { viewModel.onMoveProviderUp(provider.name) },
-                                    enabled = index > 0,
-                                    modifier = Modifier.size(32.dp)
+                                Row(
+                                    modifier = Modifier.weight(1.0f),
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
                                 ) {
-                                    Icon(
-                                        imageVector = Icons.Default.ArrowUpward,
-                                        contentDescription = "Move Up",
-                                        modifier = Modifier.size(18.dp)
+                                    if (provider.supportedCurrencyTypes.contains(CurrencyEnumType.Fiat)) {
+                                        IndicatorBox(
+                                            text = "FIAT",
+                                            textColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                                            backgroundColor = MaterialTheme.colorScheme.secondaryContainer,
+                                            iconImageVector = Icons.Default.CurrencyExchange,
+                                        )
+                                    }
+                                    if (provider.supportedCurrencyTypes.contains(CurrencyEnumType.Crypto)) {
+                                        IndicatorBox(
+                                            text = "CRYPTO",
+                                            textColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                                            backgroundColor = MaterialTheme.colorScheme.secondaryContainer,
+                                            iconImageVector = Icons.Default.CurrencyExchange,
+                                        )
+                                    }
+                                    IndicatorBox(
+                                        text = "updates every ${provider.updateFrequency}",
+                                        textColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                                        backgroundColor = MaterialTheme.colorScheme.secondaryContainer,
+                                        iconImageVector = Icons.Default.Sync,
                                     )
                                 }
-                                IconButton(
-                                    onClick = { viewModel.onMoveProviderDown(provider.name) },
-                                    enabled = index < uiState.providers.lastIndex,
-                                    modifier = Modifier.size(32.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.ArrowDownward,
-                                        contentDescription = "Move Down",
-                                        modifier = Modifier.size(18.dp)
+
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Switch(
+                                        checked = providerEntity.isEnabled,
+                                        onCheckedChange = { viewModel.onToggleProvider(providerEntity.name, it) },
+                                        modifier = Modifier.size(width = 44.dp, height = 24.dp)
                                     )
                                 }
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Switch(
-                                    checked = provider.isEnabled,
-                                    onCheckedChange = { viewModel.onToggleProvider(provider.name, it) },
-                                    modifier = Modifier.size(width = 44.dp, height = 24.dp)
+                            }
+                            if (index < uiState.providers.lastIndex) {
+                                HorizontalDivider(
+                                    modifier = Modifier.padding(vertical = 8.dp),
+                                    color = MaterialTheme.colorScheme.outline.copy(alpha = 0.1f)
                                 )
                             }
-                        }
-                        if (index < uiState.providers.lastIndex) {
-                            HorizontalDivider(
-                                modifier = Modifier.padding(vertical = 8.dp),
-                                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.1f)
-                            )
                         }
                     }
                 }
             }
-        }
 
             Spacer(modifier = Modifier.height(12.dp))
 
@@ -354,7 +355,7 @@ fun SettingsScreen(
             ) {
                 Column(modifier = Modifier.padding(14.dp)) {
                     Text(
-                        text = "Last synced: ${RelativeTimeFormatter.formatExact(uiState.lastUpdatedTimestamp)}",
+                        text = "Last synced: ${DateTimeFormatter.formatExact(uiState.lastUpdatedTimestamp)}",
                         style = MaterialTheme.typography.bodySmall.copy(
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )

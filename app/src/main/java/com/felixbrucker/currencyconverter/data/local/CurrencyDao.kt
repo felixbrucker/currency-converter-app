@@ -6,6 +6,7 @@ import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Transaction
 import kotlinx.coroutines.flow.Flow
+import kotlin.time.Instant
 
 @Dao
 interface CurrencyDao {
@@ -49,18 +50,24 @@ interface CurrencyDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun setSetting(setting: AppSettingEntity)
 
-    @Query("SELECT * FROM currency_providers ORDER BY displayOrder ASC")
-    fun getAllProvidersFlow(): Flow<List<CurrencyProviderEntity>>
+    @Query("SELECT * FROM exchange_rate_providers")
+    fun getAllProvidersFlow(): Flow<List<ExchangeRateProviderEntity>>
 
-    @Query("SELECT * FROM currency_providers WHERE isEnabled = 1 ORDER BY displayOrder ASC")
-    suspend fun getEnabledProviders(): List<CurrencyProviderEntity>
+    @Query("SELECT * FROM exchange_rate_providers WHERE isEnabled = 1")
+    suspend fun getEnabledProviders(): List<ExchangeRateProviderEntity>
 
-    @Query("UPDATE currency_providers SET lastSyncTimestamp = :timestamp WHERE name = :name")
-    suspend fun updateProviderSyncTime(name: String, timestamp: Long)
+    @Query("SELECT * FROM exchange_rate_providers WHERE isEnabled = 1 AND (nextUpdateAt IS NULL OR nextUpdateAt < :now)")
+    suspend fun getEligibleProvidersForSync(now: Instant): List<ExchangeRateProviderEntity>
 
-    @Query("UPDATE currency_providers SET isEnabled = :isEnabled WHERE name = :name")
+    @Query("UPDATE exchange_rate_providers SET lastUpdatedAt = :lastUpdatedAt, nextUpdateAt = :nextUpdateAt WHERE name = :name")
+    suspend fun updateProviderSyncTimes(name: String, lastUpdatedAt: Instant, nextUpdateAt: Instant)
+
+    @Query("UPDATE exchange_rate_providers SET isEnabled = :isEnabled WHERE name = :name")
     suspend fun updateProviderStatus(name: String, isEnabled: Boolean)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertProviders(providers: List<CurrencyProviderEntity>)
+    suspend fun insertProviders(providers: List<ExchangeRateProviderEntity>)
+
+    @Query("DELETE FROM exchange_rate_providers WHERE name IN (:names)")
+    suspend fun deleteProviders(names: List<String>)
 }

@@ -5,11 +5,14 @@ import android.util.Log
 import com.felixbrucker.currencyconverter.data.CurrenciesCatalog
 import com.felixbrucker.currencyconverter.data.local.AppDatabase
 import com.felixbrucker.currencyconverter.data.local.AppSettingEntity
-import com.felixbrucker.currencyconverter.data.local.CurrencyProviderEntity
+import com.felixbrucker.currencyconverter.data.local.ExchangeRateProviderEntity
 import com.felixbrucker.currencyconverter.data.local.ExchangeRateEntity
 import com.felixbrucker.currencyconverter.data.local.UserCurrencyEntity
-import com.felixbrucker.currencyconverter.data.remote.NetworkClient
-import com.felixbrucker.currencyconverter.model.CurrencyType
+import com.felixbrucker.currencyconverter.data.remote.ExchangeRateProvider
+import com.felixbrucker.currencyconverter.data.remote.LatestRatesResponse
+import com.felixbrucker.currencyconverter.data.remote.provider.CoinGecko
+import com.felixbrucker.currencyconverter.data.remote.provider.ExchangeRateApi
+import com.felixbrucker.currencyconverter.data.remote.provider.Frankfurter
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -18,11 +21,18 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
+import kotlin.time.Clock.System.now
 
 class CurrencyRepository(
-    private val database: AppDatabase
+    database: AppDatabase
 ) {
     private val dao = database.currencyDao()
+
+    private val exchangeRateProviders = mapOf<String, ExchangeRateProvider>(
+        ExchangeRateApi.NAME to ExchangeRateApi(),
+        Frankfurter.NAME to Frankfurter(),
+        CoinGecko.NAME to CoinGecko(),
+    )
 
     companion object {
         private const val TAG = "CurrencyRepository"
@@ -30,10 +40,6 @@ class CurrencyRepository(
         const val KEY_BG_SYNC_INTERVAL_HOURS = "setting_bg_sync_interval_hours"
         const val KEY_AUTO_REFRESH_MINUTES = "setting_auto_refresh_minutes"
         const val KEY_LAST_SYNC_TIME = "setting_last_sync_time"
-
-        const val PROVIDER_OPEN_ER = "Open ER API"
-        const val PROVIDER_FRANKFURTER = "Frankfurter API"
-        const val PROVIDER_COINGECKO = "CoinGecko API"
 
         @Volatile
         private var INSTANCE: CurrencyRepository? = null
@@ -54,7 +60,12 @@ class CurrencyRepository(
 
     val userCurrenciesFlow: Flow<List<UserCurrencyEntity>> = dao.getUserCurrencies()
 
-    val providersFlow: Flow<List<CurrencyProviderEntity>> = dao.getAllProvidersFlow()
+    val providersFlow: Flow<List<Pair<ExchangeRateProviderEntity, ExchangeRateProvider>>> = dao.getAllProvidersFlow().map { providers ->
+        providers.mapNotNull { provider ->
+            val exchangeRateProvider = exchangeRateProviders[provider.name] ?: return@mapNotNull null
+            Pair(provider, exchangeRateProvider)
+        }
+    }
 
     val lastUpdatedFlow: Flow<Long> = dao.getSettingFlow(KEY_LAST_SYNC_TIME).map { entity ->
         entity?.value?.toLongOrNull() ?: 0L
@@ -71,19 +82,17 @@ class CurrencyRepository(
 
         val providers = dao.getAllProvidersFlow().firstOrNull() ?: emptyList()
         val providerNames = providers.map { it.name }.toSet()
-        val missingProviders = mutableListOf<CurrencyProviderEntity>()
-        listOf(
-            CurrencyProviderEntity(PROVIDER_OPEN_ER, true, 0),
-            CurrencyProviderEntity(PROVIDER_FRANKFURTER, false, 1),
-            CurrencyProviderEntity(PROVIDER_COINGECKO, false, 2),
-        ).forEach { p ->
-            if (!providerNames.contains(p.name)) {
-                missingProviders.add(p.copy(displayOrder = providers.size + missingProviders.size))
+        val missingProviders = mutableListOf<ExchangeRateProviderEntity>()
+        exchangeRateProviders.values.forEach {
+            if (!providerNames.contains(it.name)) {
+                missingProviders.add(ExchangeRateProviderEntity(it.name, it.defaultEnabled))
             }
         }
         if (missingProviders.isNotEmpty()) {
             dao.insertProviders(missingProviders)
         }
+        val legacyProviders = providerNames.filter { !exchangeRateProviders.containsKey(it) }
+        dao.deleteProviders(legacyProviders)
 
         val bgEnabled = dao.getSetting(KEY_BG_SYNC_ENABLED)
         if (bgEnabled == null) {
@@ -94,95 +103,66 @@ class CurrencyRepository(
     }
 
     suspend fun refreshRates(): Result<Int> = withContext(Dispatchers.IO) {
+        val now = now()
         try {
-            val enabledProviders = dao.getEnabledProviders()
-            if (enabledProviders.isEmpty()) {
-                return@withContext Result.failure(Exception("No exchange rate providers enabled"))
+            val eligibleProviders = dao.getEligibleProvidersForSync(now = now)
+            if (eligibleProviders.isEmpty()) {
+                return@withContext Result.success(0)
             }
-
-            // We sort providers by displayOrder DESCENDING so that during merging,
-            // lower displayOrder (higher priority) providers overwrite values from lower priority ones.
-            val sortedProviders = enabledProviders.sortedByDescending { it.displayOrder }
-            val consolidatedRates = mutableMapOf<String, Double>()
+            val freshRateEntities = mutableMapOf<String, ExchangeRateEntity>()
             var anySuccess = false
-            val now = System.currentTimeMillis()
 
             coroutineScope {
-                val deferreds = sortedProviders.map { provider ->
+                val deferreds = eligibleProviders.map { providerEntity ->
                     async {
+                        val provider = exchangeRateProviders[providerEntity.name] ?: return@async null
+                        val response: LatestRatesResponse
                         try {
-                            val rates = when (provider.name) {
-                                PROVIDER_OPEN_ER -> {
-                                    val response = NetworkClient.openErApi.getLatestRates()
-                                    response.rates
-                                }
-                                PROVIDER_FRANKFURTER -> {
-                                    val response = NetworkClient.frankfurterApi.getLatestRates("USD")
-                                    response.associate { (it.quote ?: "") to (it.rate ?: 0.0) }
-                                        .filter { it.key.isNotEmpty() }
-                                }
-                                PROVIDER_COINGECKO -> {
-                                    val coinGeckoIdsToCode = mutableMapOf<String, String>()
-                                    val coinGeckoIds = CurrenciesCatalog.allCurrencies.mapNotNull {
-                                        when (it.type) {
-                                            is CurrencyType.Crypto -> {
-                                                coinGeckoIdsToCode[it.type.coinGeckoId] = it.code
-
-                                                it.type.coinGeckoId
-                                            }
-                                            else -> null
-                                        }
-                                    }
-
-                                    val allRates = mutableMapOf<String, Double>()
-                                    // CoinGecko allows up to 500 coins per request for simple/price
-                                    coinGeckoIds.chunked(500).forEach { chunk ->
-                                        try {
-                                            val idsString = chunk.joinToString(",")
-                                            val response = NetworkClient.coinGeckoApi.getPrices(idsString)
-                                            response.forEach { (id, prices) ->
-                                                val usdPrice = prices["usd"]
-                                                if (usdPrice != null && usdPrice > 0) {
-                                                    val code = coinGeckoIdsToCode[id] ?: return@forEach
-                                                    // rateToUsd = how much of this currency per 1 USD
-                                                    allRates[code.uppercase()] = 1.0 / usdPrice
-                                                }
-                                            }
-                                        } catch (e: Exception) {
-                                            Log.w(TAG, "Failed to fetch CoinGecko chunk: ${e.message}")
-                                        }
-                                    }
-                                    allRates
-                                }
-                                else -> emptyMap()
-                            }
-
-                            if (rates.isNotEmpty()) {
-                                dao.updateProviderSyncTime(provider.name, now)
-                                provider.name to rates
-                            } else {
-                                null
-                            }
+                            response = provider.getLatestUsdRates()
                         } catch (e: Exception) {
                             Log.w(TAG, "Failed to fetch from ${provider.name}: ${e.message}")
-                            null
+
+                            return@async null
                         }
+                        if (response.rates.isEmpty()) {
+                            return@async null
+                        }
+                        dao.updateProviderSyncTimes(
+                            name = provider.name,
+                            lastUpdatedAt = response.updatedAt,
+                            nextUpdateAt = response.nextUpdateAt,
+                        )
+
+                        response
                     }
                 }
 
-                deferreds.awaitAll().filterNotNull().forEach { (providerName, rates) ->
-                    consolidatedRates.putAll(rates)
+                // Update/insert all rate entities which have newer rates from the api
+                val existingRateEntities = (dao.getAllRates().firstOrNull() ?: emptyList()).associateBy { it.code }
+                deferreds.awaitAll().filterNotNull().forEach { response ->
+                    response.rates.forEach { (code, rate) ->
+                        val entity = ExchangeRateEntity(
+                            code = code.uppercase(),
+                            rateToUsd = rate,
+                            lastUpdatedAt = response.updatedAt
+                        )
+                        val existingRateEntity = existingRateEntities[entity.code]
+                        if (existingRateEntity != null && existingRateEntity.lastUpdatedAt >= entity.lastUpdatedAt) {
+                            return@forEach
+                        }
+                        val existingFreshRateEntity = freshRateEntities[entity.code]
+                        if (existingFreshRateEntity == null || existingFreshRateEntity.lastUpdatedAt < entity.lastUpdatedAt) {
+                            freshRateEntities[entity.code] = entity
+                        }
+                    }
                     anySuccess = true
                 }
             }
 
             if (anySuccess) {
-                consolidatedRates["USD"] = 1.0
-                val entities = consolidatedRates.map { (code, rate) ->
-                    ExchangeRateEntity(code = code.uppercase(), rateToUsd = rate, lastUpdated = now)
-                }
+                val entities = freshRateEntities.values.toList()
                 dao.insertRates(entities)
-                dao.setSetting(AppSettingEntity(KEY_LAST_SYNC_TIME, now.toString()))
+                dao.setSetting(AppSettingEntity(KEY_LAST_SYNC_TIME, now.toEpochMilliseconds().toString()))
                 Result.success(entities.size)
             } else {
                 Result.failure(Exception("No exchange rates retrieved from servers"))
@@ -195,15 +175,6 @@ class CurrencyRepository(
 
     suspend fun toggleProvider(name: String, enabled: Boolean) = withContext(Dispatchers.IO) {
         dao.updateProviderStatus(name, enabled)
-    }
-
-    suspend fun updateProvidersOrder(names: List<String>) = withContext(Dispatchers.IO) {
-        val existing = dao.getAllProvidersFlow().firstOrNull() ?: emptyList()
-        val existingMap = existing.associateBy { it.name }
-        val updated = names.mapIndexedNotNull { index, name ->
-            existingMap[name]?.copy(displayOrder = index)
-        }
-        dao.insertProviders(updated)
     }
 
 
@@ -235,15 +206,9 @@ class CurrencyRepository(
         dao.replaceUserCurrencies(allUpdated)
     }
 
-    suspend fun removeCurrency(code: String) = withContext(Dispatchers.IO) {
-        dao.toggleCurrencySelection(code, false)
-    }
-
     suspend fun setSetting(key: String, value: String) = withContext(Dispatchers.IO) {
         dao.setSetting(AppSettingEntity(key, value))
     }
-
-    fun getSettingFlow(key: String): Flow<String?> = dao.getSettingFlow(key).map { it?.value }
 
     suspend fun getSetting(key: String): String? = dao.getSetting(key)?.value
 }
