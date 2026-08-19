@@ -1,52 +1,56 @@
 package com.felixbrucker.currencyconverter.data.remote.provider
 
-import com.felixbrucker.currencyconverter.data.local.ExchangeRateProviderEntity
 import com.felixbrucker.currencyconverter.data.remote.CurrencyEnumType
 import com.felixbrucker.currencyconverter.data.remote.DisplayProperties
 import com.felixbrucker.currencyconverter.data.remote.ExchangeRateProvider
 import com.felixbrucker.currencyconverter.data.remote.HttpApiProvider
 import com.felixbrucker.currencyconverter.data.remote.LatestRatesResponse
-import com.squareup.moshi.Json
+import com.felixbrucker.currencyconverter.data.local.ExchangeRateProviderEntity
 import com.squareup.moshi.JsonClass
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import retrofit2.Retrofit
 import retrofit2.converter.moshi.MoshiConverterFactory
 import retrofit2.http.GET
-import kotlin.time.Duration.Companion.days
+import retrofit2.http.Header
+import kotlin.time.Duration.Companion.hours
 import kotlin.time.Instant
 
-class ExchangeRateApi(
+class OpenExchangeRates(
+    private val configFlow: Flow<ExchangeRateProviderEntity>,
     override val name: String = NAME,
-    override val requiresApiKey: Boolean = false,
+    override val requiresApiKey: Boolean = true,
     override val displayProperties: DisplayProperties = DisplayProperties(
-        infoUrl = "https://www.exchangerate-api.com",
+        infoUrl = "https://openexchangerates.org",
         supportedCurrencyTypes = setOf(CurrencyEnumType.Fiat),
-        updateFrequency = 1.days,
+        updateFrequency = 1.hours,
     ),
 ): ExchangeRateProvider, HttpApiProvider() {
     companion object {
-        const val NAME = "ExchangeRate-API"
+        const val NAME = "Open Exchange Rates"
         val DEFAULT_ENTITY = ExchangeRateProviderEntity(
             name = NAME,
-            isEnabled = true
+            isEnabled = false
         )
     }
+
     @JsonClass(generateAdapter = true)
     data class RatesResponse(
-        val result: String? = null,
-        @Json(name = "time_last_update_unix")
-        val timeLastUpdateUnix: Long? = null,
-        @Json(name = "time_next_update_unix")
-        val timeNextUpdateUnix: Long? = null,
+        val timestamp: Long,
+        val base: String,
         val rates: Map<String, Double> = emptyMap()
     )
+
     interface ApiService {
-        @GET("v6/latest/USD")
-        suspend fun getLatestRates(): RatesResponse
+        @GET("latest.json")
+        suspend fun getLatestRates(
+            @Header("Authorization") auth: String
+        ): RatesResponse
     }
 
-    val api: ApiService by lazy {
+    private val api: ApiService by lazy {
         Retrofit.Builder()
-            .baseUrl("https://open.er-api.com/")
+            .baseUrl("https://openexchangerates.org/api/")
             .client(okHttpClient)
             .addConverterFactory(MoshiConverterFactory.create(moshi))
             .build()
@@ -54,12 +58,19 @@ class ExchangeRateApi(
     }
 
     override suspend fun getLatestUsdRates(): LatestRatesResponse {
-        val response = api.getLatestRates()
+        val config = configFlow.first()
+        val apiKey = config.apiKey
+        if (apiKey.isNullOrBlank()) {
+            throw Exception("API Key (App ID) is missing for Open Exchange Rates")
+        }
+
+        val response = api.getLatestRates(auth = "Token $apiKey")
+        val updatedAt = Instant.fromEpochSeconds(response.timestamp)
 
         return LatestRatesResponse(
             rates = response.rates,
-            updatedAt = Instant.fromEpochSeconds(response.timeLastUpdateUnix ?: 0L),
-            nextUpdateAt = Instant.fromEpochSeconds(response.timeNextUpdateUnix ?: 0L),
+            updatedAt = updatedAt,
+            nextUpdateAt = updatedAt.plus(1.hours),
         )
     }
 }

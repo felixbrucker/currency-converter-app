@@ -10,7 +10,7 @@ import kotlin.time.Instant
 
 interface ExchangeRateProvider {
     val name: String
-    val defaultEnabled: Boolean
+    val requiresApiKey: Boolean
     val displayProperties: DisplayProperties
     suspend fun getLatestUsdRates(): LatestRatesResponse
 }

@@ -53,6 +53,9 @@ interface CurrencyDao {
     @Query("SELECT * FROM exchange_rate_providers")
     fun getAllProvidersFlow(): Flow<List<ExchangeRateProviderEntity>>
 
+    @Query("SELECT * FROM exchange_rate_providers WHERE name = :name")
+    fun getProviderFlow(name: String): Flow<ExchangeRateProviderEntity?>
+
     @Query("SELECT * FROM exchange_rate_providers WHERE isEnabled = 1")
     suspend fun getEnabledProviders(): List<ExchangeRateProviderEntity>
 
@@ -64,6 +67,9 @@ interface CurrencyDao {
 
     @Query("UPDATE exchange_rate_providers SET isEnabled = :isEnabled WHERE name = :name")
     suspend fun updateProviderStatus(name: String, isEnabled: Boolean)
+
+    @Query("UPDATE exchange_rate_providers SET apiKey = :apiKey WHERE name = :name")
+    suspend fun updateProviderApiKey(name: String, apiKey: String?)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertProviders(providers: List<ExchangeRateProviderEntity>)

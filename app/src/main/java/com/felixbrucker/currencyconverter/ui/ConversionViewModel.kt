@@ -412,6 +412,12 @@ class ConversionViewModel(application: Application) : AndroidViewModel(applicati
         }
     }
 
+    fun onUpdateProviderApiKey(name: String, apiKey: String?) {
+        viewModelScope.launch {
+            repository.updateProviderApiKey(name, apiKey)
+        }
+    }
+
     fun refreshRates(showLoadingIndicator: Boolean = true) {
         if (!_isOnline.value) {
             viewModelScope.launch {

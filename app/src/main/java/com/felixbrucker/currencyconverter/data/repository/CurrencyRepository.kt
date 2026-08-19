@@ -13,12 +13,14 @@ import com.felixbrucker.currencyconverter.data.remote.LatestRatesResponse
 import com.felixbrucker.currencyconverter.data.remote.provider.CoinGecko
 import com.felixbrucker.currencyconverter.data.remote.provider.ExchangeRateApi
 import com.felixbrucker.currencyconverter.data.remote.provider.Frankfurter
+import com.felixbrucker.currencyconverter.data.remote.provider.OpenExchangeRates
 import com.felixbrucker.currencyconverter.extensions.aggregate
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
@@ -33,6 +35,7 @@ class CurrencyRepository(
         ExchangeRateApi.NAME to ExchangeRateApi(),
         Frankfurter.NAME to Frankfurter(),
         CoinGecko.NAME to CoinGecko(),
+        OpenExchangeRates.NAME to OpenExchangeRates(dao.getProviderFlow(OpenExchangeRates.NAME).filterNotNull()),
     )
 
     companion object {
@@ -86,9 +89,15 @@ class CurrencyRepository(
         val providers = dao.getAllProvidersFlow().firstOrNull() ?: emptyList()
         val providerNames = providers.map { it.name }.toSet()
         val missingProviders = mutableListOf<ExchangeRateProviderEntity>()
-        exchangeRateProviders.values.forEach {
+        val defaultEntities = listOf(
+            ExchangeRateApi.DEFAULT_ENTITY,
+            Frankfurter.DEFAULT_ENTITY,
+            CoinGecko.DEFAULT_ENTITY,
+            OpenExchangeRates.DEFAULT_ENTITY
+        )
+        defaultEntities.forEach {
             if (!providerNames.contains(it.name)) {
-                missingProviders.add(ExchangeRateProviderEntity(it.name, it.defaultEnabled))
+                missingProviders.add(it)
             }
         }
         if (missingProviders.isNotEmpty()) {
@@ -201,6 +210,10 @@ class CurrencyRepository(
 
     suspend fun toggleProvider(name: String, enabled: Boolean) = withContext(Dispatchers.IO) {
         dao.updateProviderStatus(name, enabled)
+    }
+
+    suspend fun updateProviderApiKey(name: String, apiKey: String?) = withContext(Dispatchers.IO) {
+        dao.updateProviderApiKey(name, apiKey)
     }
 
 

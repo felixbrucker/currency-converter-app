@@ -11,4 +11,5 @@ data class ExchangeRateProviderEntity(
     val isEnabled: Boolean,
     val lastUpdatedAt: Instant? = null,
     val nextUpdateAt: Instant? = null,
+    val apiKey: String? = null,
 )

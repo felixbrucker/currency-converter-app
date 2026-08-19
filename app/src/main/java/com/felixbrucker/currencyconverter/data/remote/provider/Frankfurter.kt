@@ -1,5 +1,6 @@
 package com.felixbrucker.currencyconverter.data.remote.provider
 
+import com.felixbrucker.currencyconverter.data.local.ExchangeRateProviderEntity
 import com.felixbrucker.currencyconverter.data.remote.CurrencyEnumType
 import com.felixbrucker.currencyconverter.data.remote.DisplayProperties
 import com.felixbrucker.currencyconverter.data.remote.ExchangeRateProvider
@@ -20,7 +21,7 @@ import kotlin.time.Instant
 
 class Frankfurter(
     override val name: String = NAME,
-    override val defaultEnabled: Boolean = true,
+    override val requiresApiKey: Boolean = false,
     override val displayProperties: DisplayProperties = DisplayProperties(
         infoUrl = "https://frankfurter.dev",
         supportedCurrencyTypes = setOf(CurrencyEnumType.Fiat),
@@ -29,6 +30,10 @@ class Frankfurter(
 ): ExchangeRateProvider, HttpApiProvider() {
     companion object {
         const val NAME = "Frankfurter API"
+        val DEFAULT_ENTITY = ExchangeRateProviderEntity(
+            name = NAME,
+            isEnabled = true
+        )
     }
     @JsonClass(generateAdapter = true)
     data class RatesResponse(

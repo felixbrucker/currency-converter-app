@@ -1,6 +1,7 @@
 package com.felixbrucker.currencyconverter.data.remote.provider
 
 import com.felixbrucker.currencyconverter.data.CurrenciesCatalog
+import com.felixbrucker.currencyconverter.data.local.ExchangeRateProviderEntity
 import com.felixbrucker.currencyconverter.data.remote.CurrencyEnumType
 import com.felixbrucker.currencyconverter.data.remote.DisplayProperties
 import com.felixbrucker.currencyconverter.data.remote.ExchangeRateProvider
@@ -22,7 +23,7 @@ import kotlin.time.Instant
 
 class CoinGecko(
     override val name: String = NAME,
-    override val defaultEnabled: Boolean = true,
+    override val requiresApiKey: Boolean = false,
     override val displayProperties: DisplayProperties = DisplayProperties(
         infoUrl = "https://www.coingecko.com/en/api",
         supportedCurrencyTypes = setOf(CurrencyEnumType.Crypto),
@@ -31,6 +32,10 @@ class CoinGecko(
 ): ExchangeRateProvider, HttpApiProvider() {
     companion object {
         const val NAME = "CoinGecko API"
+        val DEFAULT_ENTITY = ExchangeRateProviderEntity(
+            name = NAME,
+            isEnabled = true
+        )
     }
     @JsonClass(generateAdapter = true)
     data class SimpleUsdPriceResult(
