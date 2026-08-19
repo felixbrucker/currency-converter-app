@@ -29,10 +29,15 @@ android {
 
   signingConfigs {
     getByName("debug") {
-      storeFile = file("C:\\Users\\Felix\\.android\\main.jks")
-      storePassword = "test1234"
-      keyAlias = "main"
-      keyPassword = "test1234"
+      val keystorePath = System.getenv("KEYSTORE_PATH")
+      storeFile = if (!keystorePath.isNullOrBlank() && file(keystorePath).exists()) {
+        file(keystorePath)
+      } else {
+        file("${rootDir}/debug.keystore")
+      }
+      storePassword = System.getenv("KEYSTORE_PASSWORD")
+      keyAlias = System.getenv("KEY_ALIAS")
+      keyPassword = System.getenv("KEY_PASSWORD")
     }
     create("release") {
       val keystorePath = System.getenv("KEYSTORE_PATH")
