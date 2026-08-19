@@ -209,10 +209,8 @@ fun ConversionScreen(
                                     }
                                 },
                                 backgroundContent = {
-                                    val color = when (dismissState.dismissDirection) {
-                                        SwipeToDismissBoxValue.EndToStart -> Color.Red.copy(alpha = 0.8f)
-                                        else -> Color.Transparent
-                                    }
+                                    val isDismissing = dismissState.dismissDirection == SwipeToDismissBoxValue.EndToStart
+                                    val color = if (isDismissing) Color.Red.copy(alpha = 0.8f) else Color.Transparent
                                     Box(
                                         modifier = Modifier
                                             .fillMaxSize()
@@ -220,12 +218,14 @@ fun ConversionScreen(
                                             .background(color, RoundedCornerShape(16.dp)),
                                         contentAlignment = Alignment.CenterEnd
                                     ) {
-                                        Icon(
-                                            imageVector = Icons.Default.Delete,
-                                            contentDescription = "Remove",
-                                            tint = Color.White,
-                                            modifier = Modifier.padding(end = 16.dp)
-                                        )
+                                        if (isDismissing) {
+                                            Icon(
+                                                imageVector = Icons.Default.Delete,
+                                                contentDescription = "Remove",
+                                                tint = Color.White,
+                                                modifier = Modifier.padding(end = 16.dp)
+                                            )
+                                        }
                                     }
                                 },
                                 content = {

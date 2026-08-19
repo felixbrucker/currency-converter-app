@@ -100,7 +100,7 @@ fun ConversionCard(
     }
 
     val cardBg = when {
-        isDragging -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f)
+        isDragging -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.9f)
         isActive -> MaterialTheme.colorScheme.surfaceVariant
         else -> MaterialTheme.colorScheme.surface
     }
