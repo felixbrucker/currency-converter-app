@@ -48,7 +48,7 @@ class CoinGecko(
 
     interface ApiService {
         @GET("simple/price")
-        suspend fun getPrices(
+        suspend fun getUsdPrices(
             @Query("ids") ids: String,
             @Query("vs_currencies") vsCurrencies: String = "usd",
             @Query("include_last_updated_at") includeLastUpdatedAt: Boolean = true,
@@ -82,7 +82,7 @@ class CoinGecko(
         // CoinGecko allows up to 500 coins per request for simple/price
         coinGeckoIds.chunked(500).forEach { chunk ->
             val idsString = chunk.joinToString(",")
-            val response = api.getPrices(ids = idsString, vsCurrencies = "usd")
+            val response = api.getUsdPrices(ids = idsString)
             response.forEach { (id, priceResult) ->
                 val usdPrice = priceResult.usd
                 val code = coinGeckoIdsToCode[id] ?: return@forEach

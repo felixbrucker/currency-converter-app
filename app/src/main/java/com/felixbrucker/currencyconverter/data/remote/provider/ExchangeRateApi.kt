@@ -41,7 +41,7 @@ class ExchangeRateApi(
     )
     interface ApiService {
         @GET("v6/latest/USD")
-        suspend fun getLatestRates(): RatesResponse
+        suspend fun getLatestUsdRates(): RatesResponse
     }
 
     val api: ApiService by lazy {
@@ -54,7 +54,7 @@ class ExchangeRateApi(
     }
 
     override suspend fun getLatestUsdRates(): LatestRatesResponse {
-        val response = api.getLatestRates()
+        val response = api.getLatestUsdRates()
 
         return LatestRatesResponse(
             rates = response.rates,

@@ -11,6 +11,7 @@ import com.felixbrucker.currencyconverter.data.local.UserCurrencyEntity
 import com.felixbrucker.currencyconverter.data.remote.ExchangeRateProvider
 import com.felixbrucker.currencyconverter.data.remote.LatestRatesResponse
 import com.felixbrucker.currencyconverter.data.remote.provider.CoinGecko
+import com.felixbrucker.currencyconverter.data.remote.provider.CurrencyApiNet
 import com.felixbrucker.currencyconverter.data.remote.provider.ExchangeRateApi
 import com.felixbrucker.currencyconverter.data.remote.provider.Frankfurter
 import com.felixbrucker.currencyconverter.data.remote.provider.OpenExchangeRates
@@ -36,6 +37,7 @@ class CurrencyRepository(
         Frankfurter.NAME to Frankfurter(),
         CoinGecko.NAME to CoinGecko(),
         OpenExchangeRates.NAME to OpenExchangeRates(dao.getProviderFlow(OpenExchangeRates.NAME).filterNotNull()),
+        CurrencyApiNet.NAME to CurrencyApiNet(dao.getProviderFlow(CurrencyApiNet.NAME).filterNotNull()),
     )
 
     companion object {
@@ -93,7 +95,8 @@ class CurrencyRepository(
             ExchangeRateApi.DEFAULT_ENTITY,
             Frankfurter.DEFAULT_ENTITY,
             CoinGecko.DEFAULT_ENTITY,
-            OpenExchangeRates.DEFAULT_ENTITY
+            OpenExchangeRates.DEFAULT_ENTITY,
+            CurrencyApiNet.DEFAULT_ENTITY,
         )
         defaultEntities.forEach {
             if (!providerNames.contains(it.name)) {

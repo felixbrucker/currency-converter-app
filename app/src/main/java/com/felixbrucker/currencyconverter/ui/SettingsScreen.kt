@@ -92,23 +92,24 @@ fun SettingsScreen(
     var selectedProviderForApiKey by remember { mutableStateOf<Pair<ExchangeRateProviderEntity, ExchangeRateProvider>?>(null) }
 
     if (selectedProviderForApiKey != null) {
-        val provider = selectedProviderForApiKey!!
-        var apiKeyText by remember { mutableStateOf(provider.first.apiKey ?: "") }
+        val (providerEntity, provider) = selectedProviderForApiKey!!
+        var apiKeyText by remember { mutableStateOf(providerEntity.apiKey ?: "") }
+        val apiKeyIdentifier = provider.displayProperties.apiKeyIdentifier ?: "API Key"
 
         AlertDialog(
             onDismissRequest = { selectedProviderForApiKey = null },
-            title = { Text("Configure ${provider.second.name}") },
+            title = { Text("Configure ${provider.name}") },
             text = {
                 Column {
                     Text(
-                        text = "Enter your API key / App ID for this provider. You can find it in your provider's dashboard.",
+                        text = "Enter your $apiKeyIdentifier for this provider. You can find it in your provider's dashboard.",
                         style = MaterialTheme.typography.bodySmall,
                         modifier = Modifier.padding(bottom = 8.dp)
                     )
                     OutlinedTextField(
                         value = apiKeyText,
                         onValueChange = { apiKeyText = it },
-                        label = { Text("API Key / App ID") },
+                        label = { Text(apiKeyIdentifier) },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true
                     )
@@ -116,7 +117,7 @@ fun SettingsScreen(
             },
             confirmButton = {
                 TextButton(onClick = {
-                    viewModel.onUpdateProviderApiKey(provider.first.name, apiKeyText.ifBlank { null })
+                    viewModel.onUpdateProviderApiKey(provider.name, apiKeyText.ifBlank { null })
                     selectedProviderForApiKey = null
                 }) {
                     Text("Save")

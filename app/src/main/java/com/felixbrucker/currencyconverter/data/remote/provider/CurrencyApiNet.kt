@@ -12,23 +12,23 @@ import kotlinx.coroutines.flow.first
 import retrofit2.Retrofit
 import retrofit2.converter.moshi.MoshiConverterFactory
 import retrofit2.http.GET
-import retrofit2.http.Header
+import retrofit2.http.Query
 import kotlin.time.Duration.Companion.hours
 import kotlin.time.Instant
 
-class OpenExchangeRates(
+class CurrencyApiNet(
     private val configFlow: Flow<ExchangeRateProviderEntity>,
     override val name: String = NAME,
     override val requiresApiKey: Boolean = true,
     override val displayProperties: DisplayProperties = DisplayProperties(
-        infoUrl = "https://openexchangerates.org",
+        infoUrl = "https://currencyapi.net",
         supportedCurrencyTypes = setOf(CurrencyEnumType.Fiat),
         updateFrequency = 1.hours,
-        apiKeyIdentifier = "App ID"
+        apiKeyIdentifier = "API Key"
     ),
 ): ExchangeRateProvider, HttpApiProvider() {
     companion object {
-        const val NAME = "Open Exchange Rates"
+        const val NAME = "Currency {api}"
         val DEFAULT_ENTITY = ExchangeRateProviderEntity(
             name = NAME,
             isEnabled = false
@@ -37,21 +37,21 @@ class OpenExchangeRates(
 
     @JsonClass(generateAdapter = true)
     data class RatesResponse(
-        val timestamp: Long,
+        val updated: Long,
         val base: String,
         val rates: Map<String, Double> = emptyMap()
     )
 
     interface ApiService {
-        @GET("latest.json")
+        @GET("rates")
         suspend fun getLatestUsdRates(
-            @Header("Authorization") auth: String
+            @Query("key") key: String,
         ): RatesResponse
     }
 
     private val api: ApiService by lazy {
         Retrofit.Builder()
-            .baseUrl("https://openexchangerates.org/api/")
+            .baseUrl("https://currencyapi.net/api/v2/")
             .client(okHttpClient)
             .addConverterFactory(MoshiConverterFactory.create(moshi))
             .build()
@@ -65,8 +65,8 @@ class OpenExchangeRates(
             throw Exception("${displayProperties.apiKeyIdentifier} is missing")
         }
 
-        val response = api.getLatestUsdRates(auth = "Token $apiKey")
-        val updatedAt = Instant.fromEpochSeconds(response.timestamp)
+        val response = api.getLatestUsdRates(key = apiKey)
+        val updatedAt = Instant.fromEpochSeconds(response.updated)
 
         return LatestRatesResponse(
             rates = response.rates,

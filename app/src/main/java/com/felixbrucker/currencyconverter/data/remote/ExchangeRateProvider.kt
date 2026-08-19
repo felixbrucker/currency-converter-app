@@ -19,6 +19,7 @@ data class DisplayProperties(
     val infoUrl: String,
     val supportedCurrencyTypes: Set<CurrencyEnumType>,
     val updateFrequency: Duration,
+    val apiKeyIdentifier: String? = null,
 )
 
 enum class CurrencyEnumType {
