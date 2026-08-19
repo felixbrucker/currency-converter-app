@@ -24,13 +24,14 @@ import androidx.compose.ui.unit.sp
 fun IndicatorBox(
     text: String,
     backgroundColor: Color,
+    modifier: Modifier = Modifier,
     textColor: Color? = null,
     iconImageVector: ImageVector? = null,
     iconTint: Color? = null,
 ) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier
+        modifier = modifier
             .background(
                 backgroundColor,
                 RoundedCornerShape(4.dp)
@@ -48,9 +49,11 @@ fun IndicatorBox(
         }
         Text(
             text = text,
+            softWrap = true,
             style = MaterialTheme.typography.labelSmall.copy(
                 fontWeight = FontWeight.Bold,
                 fontSize = 9.sp,
+                lineHeight = 11.sp,
                 color = textColor ?: MaterialTheme.typography.labelSmall.color,
             )
         )

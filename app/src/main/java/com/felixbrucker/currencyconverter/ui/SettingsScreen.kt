@@ -8,6 +8,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -15,9 +16,10 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.InlineTextContent
+import androidx.compose.foundation.text.appendInlineContent
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -53,8 +55,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.Placeholder
+import androidx.compose.ui.text.PlaceholderVerticalAlign
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.felixbrucker.currencyconverter.data.local.ExchangeRateProviderEntity
@@ -355,26 +361,75 @@ fun SettingsScreen(
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.spacedBy(6.dp),
-                                verticalAlignment = Alignment.CenterVertically,
+                                verticalAlignment = Alignment.Top,
                             ) {
                                 Column(
-                                    modifier = Modifier.clickable {
-                                        uriHandler.openUri(provider.displayProperties.infoUrl)
-                                    }
+                                    modifier = Modifier.weight(1f)
                                 ) {
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Text(
-                                            text = providerEntity.name,
-                                            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold)
-                                        )
-                                        Spacer(modifier = Modifier.width(4.dp))
-                                        Icon(
-                                            imageVector = Icons.AutoMirrored.Filled.OpenInNew,
-                                            contentDescription = "Open Info",
-                                            modifier = Modifier.size(14.dp),
-                                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                    val inlineContentId = "open_info_icon"
+                                    val annotatedString = buildAnnotatedString {
+                                        append(providerEntity.name)
+                                        appendInlineContent(inlineContentId)
+                                    }
+                                    val inlineContent = mapOf(
+                                        inlineContentId to InlineTextContent(
+                                            Placeholder(
+                                                width = 20.sp,
+                                                height = 16.sp,
+                                                placeholderVerticalAlign = PlaceholderVerticalAlign.TextCenter
+                                            )
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.AutoMirrored.Filled.OpenInNew,
+                                                contentDescription = "Open Info",
+                                                modifier = Modifier
+                                                    .padding(start = 4.dp)
+                                                    .size(14.dp),
+                                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        }
+                                    )
+                                    Text(
+                                        text = annotatedString,
+                                        inlineContent = inlineContent,
+                                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
+                                        modifier = Modifier.clickable {
+                                            uriHandler.openUri(provider.displayProperties.infoUrl)
+                                        }
+                                    )
+
+                                    Spacer(modifier = Modifier.height(4.dp))
+
+                                    FlowRow(
+                                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                                    ) {
+                                        if (provider.displayProperties.supportedCurrencyTypes.contains(CurrencyEnumType.Fiat)) {
+                                            IndicatorBox(
+                                                text = "FIAT",
+                                                textColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                                                backgroundColor = MaterialTheme.colorScheme.secondaryContainer,
+                                                iconImageVector = Icons.Default.CurrencyExchange,
+                                            )
+                                        }
+                                        if (provider.displayProperties.supportedCurrencyTypes.contains(CurrencyEnumType.Crypto)) {
+                                            IndicatorBox(
+                                                text = "CRYPTO",
+                                                textColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                                                backgroundColor = MaterialTheme.colorScheme.secondaryContainer,
+                                                iconImageVector = Icons.Default.CurrencyExchange,
+                                            )
+                                        }
+                                        IndicatorBox(
+                                            text = "updates every ${provider.displayProperties.updateFrequency}",
+                                            textColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                                            backgroundColor = MaterialTheme.colorScheme.secondaryContainer,
+                                            iconImageVector = Icons.Default.Sync,
                                         )
                                     }
+
+                                    Spacer(modifier = Modifier.height(2.dp))
+
                                     Text(
                                         text = if (providerEntity.lastUpdatedAt != null) {
                                             "Last data update: ${DateTimeFormatter.formatRelative(providerEntity.lastUpdatedAt)}"
@@ -393,34 +448,6 @@ fun SettingsScreen(
                                             )
                                         )
                                     }
-                                }
-
-                                Row(
-                                    modifier = Modifier.weight(1.0f),
-                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                                ) {
-                                    if (provider.displayProperties.supportedCurrencyTypes.contains(CurrencyEnumType.Fiat)) {
-                                        IndicatorBox(
-                                            text = "FIAT",
-                                            textColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                                            backgroundColor = MaterialTheme.colorScheme.secondaryContainer,
-                                            iconImageVector = Icons.Default.CurrencyExchange,
-                                        )
-                                    }
-                                    if (provider.displayProperties.supportedCurrencyTypes.contains(CurrencyEnumType.Crypto)) {
-                                        IndicatorBox(
-                                            text = "CRYPTO",
-                                            textColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                                            backgroundColor = MaterialTheme.colorScheme.secondaryContainer,
-                                            iconImageVector = Icons.Default.CurrencyExchange,
-                                        )
-                                    }
-                                    IndicatorBox(
-                                        text = "updates every ${provider.displayProperties.updateFrequency}",
-                                        textColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                                        backgroundColor = MaterialTheme.colorScheme.secondaryContainer,
-                                        iconImageVector = Icons.Default.Sync,
-                                    )
                                 }
 
                                 Row(
