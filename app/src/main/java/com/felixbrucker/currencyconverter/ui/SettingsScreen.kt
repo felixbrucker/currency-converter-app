@@ -484,6 +484,12 @@ fun SettingsScreen(
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     )
+                    Text(
+                        text = "Last backup: ${DateTimeFormatter.formatRelative(uiState.lastBackupTimestamp)}",
+                        style = MaterialTheme.typography.bodySmall.copy(
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    )
                 }
             }
         }

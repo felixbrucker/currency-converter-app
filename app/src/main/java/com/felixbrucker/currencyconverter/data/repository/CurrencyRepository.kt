@@ -2,6 +2,7 @@ package com.felixbrucker.currencyconverter.data.repository
 
 import android.content.Context
 import android.util.Log
+import android.app.backup.BackupManager
 import com.felixbrucker.currencyconverter.data.CurrenciesCatalog
 import com.felixbrucker.currencyconverter.data.local.AppDatabase
 import com.felixbrucker.currencyconverter.data.local.AppSettingEntity
@@ -28,7 +29,8 @@ import kotlinx.coroutines.withContext
 import kotlin.time.Clock.System.now
 
 class CurrencyRepository(
-    database: AppDatabase
+    database: AppDatabase,
+    private val backupManager: BackupManager
 ) {
     private val dao = database.currencyDao()
 
@@ -46,6 +48,7 @@ class CurrencyRepository(
         const val KEY_BG_SYNC_INTERVAL_HOURS = "setting_bg_sync_interval_hours"
         const val KEY_AUTO_REFRESH_MINUTES = "setting_auto_refresh_minutes"
         const val KEY_LAST_SYNC_TIME = "setting_last_sync_time"
+        const val KEY_LAST_BACKUP_TIME = "setting_last_backup_time"
         const val KEY_ACTIVE_CURRENCY_CODE = "setting_active_currency_code"
         const val KEY_ACTIVE_INPUT_AMOUNT = "setting_active_input_amount"
 
@@ -55,7 +58,8 @@ class CurrencyRepository(
         fun getInstance(context: Context): CurrencyRepository {
             return INSTANCE ?: synchronized(this) {
                 val db = AppDatabase.getInstance(context)
-                val repo = CurrencyRepository(db)
+                val bm = BackupManager(context)
+                val repo = CurrencyRepository(db, bm)
                 INSTANCE = repo
                 repo
             }
@@ -76,6 +80,10 @@ class CurrencyRepository(
     }
 
     val lastUpdatedFlow: Flow<Long> = dao.getSettingFlow(KEY_LAST_SYNC_TIME).map { entity ->
+        entity?.value?.toLongOrNull() ?: 0L
+    }
+
+    val lastBackupFlow: Flow<Long> = dao.getSettingFlow(KEY_LAST_BACKUP_TIME).map { entity ->
         entity?.value?.toLongOrNull() ?: 0L
     }
 
@@ -213,10 +221,12 @@ class CurrencyRepository(
 
     suspend fun toggleProvider(name: String, enabled: Boolean) = withContext(Dispatchers.IO) {
         dao.updateProviderStatus(name, enabled)
+        backupManager.dataChanged()
     }
 
     suspend fun updateProviderApiKey(name: String, apiKey: String?) = withContext(Dispatchers.IO) {
         dao.updateProviderApiKey(name, apiKey)
+        backupManager.dataChanged()
     }
 
 
@@ -231,6 +241,7 @@ class CurrencyRepository(
                 listOf(UserCurrencyEntity(code = code.uppercase(), displayOrder = nextOrder, isSelected = true))
             )
         }
+        backupManager.dataChanged()
     }
 
     suspend fun updateCurrenciesOrder(orderedCodes: List<String>) = withContext(Dispatchers.IO) {
@@ -246,10 +257,14 @@ class CurrencyRepository(
             item.copy(displayOrder = updated.size + idx)
         }
         dao.replaceUserCurrencies(allUpdated)
+        backupManager.dataChanged()
     }
 
     suspend fun setSetting(key: String, value: String) = withContext(Dispatchers.IO) {
         dao.setSetting(AppSettingEntity(key, value))
+        if (key != KEY_LAST_SYNC_TIME && key != KEY_LAST_BACKUP_TIME) {
+            backupManager.dataChanged()
+        }
     }
 
     suspend fun getSetting(key: String): String? = dao.getSetting(key)?.value

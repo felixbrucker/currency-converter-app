@@ -42,6 +42,7 @@ data class ConversionUiState(
     val activeInputText: String = "",
     val isHintActive: Boolean = true,
     val lastUpdatedTimestamp: Long = 0L,
+    val lastBackupTimestamp: Long = 0L,
     val isRefreshing: Boolean = false,
     val maxCountdownSeconds: Int = 300,
     val isOnline: Boolean = true,
@@ -190,6 +191,7 @@ class ConversionViewModel(application: Application) : AndroidViewModel(applicati
         repository.userCurrenciesFlow,
         repository.ratesFlow,
         repository.lastUpdatedFlow,
+        repository.lastBackupFlow,
         _isRefreshing,
         _isOnline,
         _bgSyncEnabled,
@@ -209,6 +211,7 @@ class ConversionViewModel(application: Application) : AndroidViewModel(applicati
         @Suppress("UNCHECKED_CAST")
         val rates = params[idx++] as Map<String, ExchangeRateEntity>
         val lastUpdated = params[idx++] as Long
+        val lastBackup = params[idx++] as Long
         val isRef = params[idx++] as Boolean
         val isOnline = params[idx++] as Boolean
         val bgSyncEn = params[idx++] as Boolean
@@ -311,6 +314,7 @@ class ConversionViewModel(application: Application) : AndroidViewModel(applicati
             activeInputText = activeInput,
             isHintActive = isHint,
             lastUpdatedTimestamp = lastUpdated,
+            lastBackupTimestamp = lastBackup,
             isRefreshing = isRef,
             maxCountdownSeconds = maxCountdown,
             isOnline = isOnline,
