@@ -4,6 +4,7 @@ import android.Manifest
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -13,11 +14,13 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.CurrencyExchange
 import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material3.Card
@@ -40,6 +43,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -57,6 +61,7 @@ fun SettingsScreen(
     onBack: () -> Unit
 ) {
     val context = LocalContext.current
+    val uriHandler = LocalUriHandler.current
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     val permissionLauncher = rememberLauncherForActivityResult(
@@ -300,11 +305,24 @@ fun SettingsScreen(
                                 horizontalArrangement = Arrangement.spacedBy(6.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
-                                Column {
-                                    Text(
-                                        text = providerEntity.name,
-                                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold)
-                                    )
+                                Column(
+                                    modifier = Modifier.clickable {
+                                        uriHandler.openUri(provider.displayProperties.infoUrl)
+                                    }
+                                ) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Text(
+                                            text = providerEntity.name,
+                                            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold)
+                                        )
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Icon(
+                                            imageVector = Icons.AutoMirrored.Filled.OpenInNew,
+                                            contentDescription = "Open Info",
+                                            modifier = Modifier.size(14.dp),
+                                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
                                     Text(
                                         text = if (providerEntity.lastUpdatedAt != null) {
                                             "Last data update: ${DateTimeFormatter.formatRelative(providerEntity.lastUpdatedAt)}"
@@ -329,7 +347,7 @@ fun SettingsScreen(
                                     modifier = Modifier.weight(1.0f),
                                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                                 ) {
-                                    if (provider.supportedCurrencyTypes.contains(CurrencyEnumType.Fiat)) {
+                                    if (provider.displayProperties.supportedCurrencyTypes.contains(CurrencyEnumType.Fiat)) {
                                         IndicatorBox(
                                             text = "FIAT",
                                             textColor = MaterialTheme.colorScheme.onSecondaryContainer,
@@ -337,7 +355,7 @@ fun SettingsScreen(
                                             iconImageVector = Icons.Default.CurrencyExchange,
                                         )
                                     }
-                                    if (provider.supportedCurrencyTypes.contains(CurrencyEnumType.Crypto)) {
+                                    if (provider.displayProperties.supportedCurrencyTypes.contains(CurrencyEnumType.Crypto)) {
                                         IndicatorBox(
                                             text = "CRYPTO",
                                             textColor = MaterialTheme.colorScheme.onSecondaryContainer,
@@ -346,7 +364,7 @@ fun SettingsScreen(
                                         )
                                     }
                                     IndicatorBox(
-                                        text = "updates every ${provider.updateFrequency}",
+                                        text = "updates every ${provider.displayProperties.updateFrequency}",
                                         textColor = MaterialTheme.colorScheme.onSecondaryContainer,
                                         backgroundColor = MaterialTheme.colorScheme.secondaryContainer,
                                         iconImageVector = Icons.Default.Sync,

@@ -11,10 +11,15 @@ import kotlin.time.Instant
 interface ExchangeRateProvider {
     val name: String
     val defaultEnabled: Boolean
-    val updateFrequency: Duration // Used for display purposes only
-    val supportedCurrencyTypes: Set<CurrencyEnumType>
+    val displayProperties: DisplayProperties
     suspend fun getLatestUsdRates(): LatestRatesResponse
 }
+
+data class DisplayProperties(
+    val infoUrl: String,
+    val supportedCurrencyTypes: Set<CurrencyEnumType>,
+    val updateFrequency: Duration,
+)
 
 enum class CurrencyEnumType {
     Fiat,

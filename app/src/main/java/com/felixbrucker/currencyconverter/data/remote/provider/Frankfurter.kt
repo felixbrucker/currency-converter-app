@@ -1,6 +1,7 @@
 package com.felixbrucker.currencyconverter.data.remote.provider
 
 import com.felixbrucker.currencyconverter.data.remote.CurrencyEnumType
+import com.felixbrucker.currencyconverter.data.remote.DisplayProperties
 import com.felixbrucker.currencyconverter.data.remote.ExchangeRateProvider
 import com.felixbrucker.currencyconverter.data.remote.HttpApiProvider
 import com.felixbrucker.currencyconverter.data.remote.LatestRatesResponse
@@ -13,7 +14,6 @@ import retrofit2.http.Query
 import java.time.LocalDate
 import java.time.ZoneId
 import kotlin.time.Clock.System.now
-import kotlin.time.Duration
 import kotlin.time.Duration.Companion.days
 import kotlin.time.Duration.Companion.hours
 import kotlin.time.Instant
@@ -21,8 +21,11 @@ import kotlin.time.Instant
 class Frankfurter(
     override val name: String = NAME,
     override val defaultEnabled: Boolean = true,
-    override val updateFrequency: Duration = 1.days,
-    override val supportedCurrencyTypes: Set<CurrencyEnumType> = setOf(CurrencyEnumType.Fiat),
+    override val displayProperties: DisplayProperties = DisplayProperties(
+        infoUrl = "https://frankfurter.dev",
+        supportedCurrencyTypes = setOf(CurrencyEnumType.Fiat),
+        updateFrequency = 1.days,
+    ),
 ): ExchangeRateProvider, HttpApiProvider() {
     companion object {
         const val NAME = "Frankfurter API"

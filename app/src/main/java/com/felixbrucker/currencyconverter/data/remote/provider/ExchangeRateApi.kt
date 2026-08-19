@@ -1,6 +1,7 @@
 package com.felixbrucker.currencyconverter.data.remote.provider
 
 import com.felixbrucker.currencyconverter.data.remote.CurrencyEnumType
+import com.felixbrucker.currencyconverter.data.remote.DisplayProperties
 import com.felixbrucker.currencyconverter.data.remote.ExchangeRateProvider
 import com.felixbrucker.currencyconverter.data.remote.HttpApiProvider
 import com.felixbrucker.currencyconverter.data.remote.LatestRatesResponse
@@ -9,15 +10,17 @@ import com.squareup.moshi.JsonClass
 import retrofit2.Retrofit
 import retrofit2.converter.moshi.MoshiConverterFactory
 import retrofit2.http.GET
-import kotlin.time.Duration
 import kotlin.time.Duration.Companion.days
 import kotlin.time.Instant
 
 class ExchangeRateApi(
     override val name: String = NAME,
     override val defaultEnabled: Boolean = true,
-    override val updateFrequency: Duration = 1.days,
-    override val supportedCurrencyTypes: Set<CurrencyEnumType> = setOf(CurrencyEnumType.Fiat),
+    override val displayProperties: DisplayProperties = DisplayProperties(
+        infoUrl = "https://www.exchangerate-api.com",
+        supportedCurrencyTypes = setOf(CurrencyEnumType.Fiat),
+        updateFrequency = 1.days,
+    ),
 ): ExchangeRateProvider, HttpApiProvider() {
     companion object {
         const val NAME = "ExchangeRate-API"
