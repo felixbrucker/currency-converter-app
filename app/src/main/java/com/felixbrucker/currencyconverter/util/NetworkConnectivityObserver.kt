@@ -15,7 +15,8 @@ interface ConnectivityObserver {
     fun observe(): Flow<Status>
 
     enum class Status {
-        Available, Unavailable, Losing, Lost
+        Available,
+        Unavailable,
     }
 }
 
@@ -34,16 +35,6 @@ class NetworkConnectivityObserver(
                     launch { send(ConnectivityObserver.Status.Available) }
                 }
 
-                override fun onLosing(network: Network, maxMsToLive: Int) {
-                    super.onLosing(network, maxMsToLive)
-                    launch { send(ConnectivityObserver.Status.Losing) }
-                }
-
-                override fun onLost(network: Network) {
-                    super.onLost(network)
-                    launch { send(ConnectivityObserver.Status.Lost) }
-                }
-
                 override fun onUnavailable() {
                     super.onUnavailable()
                     launch { send(ConnectivityObserver.Status.Unavailable) }
@@ -53,15 +44,15 @@ class NetworkConnectivityObserver(
             val request = NetworkRequest.Builder()
                 .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
                 .build()
-            
+
             connectivityManager.registerNetworkCallback(request, callback)
-            
+
             // Send initial state
             val isCurrentlyConnected = connectivityManager.activeNetwork?.let {
                 connectivityManager.getNetworkCapabilities(it)
                     ?.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
             } ?: false
-            
+
             send(if (isCurrentlyConnected) ConnectivityObserver.Status.Available else ConnectivityObserver.Status.Unavailable)
 
             awaitClose {
