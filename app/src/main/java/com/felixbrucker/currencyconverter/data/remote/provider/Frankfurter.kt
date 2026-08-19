@@ -20,7 +20,7 @@ import kotlin.time.Instant
 
 class Frankfurter(
     override val name: String = NAME,
-    override val defaultEnabled: Boolean = false,
+    override val defaultEnabled: Boolean = true,
     override val updateFrequency: Duration = 1.days,
     override val supportedCurrencyTypes: Set<CurrencyEnumType> = setOf(CurrencyEnumType.Fiat),
 ): ExchangeRateProvider, HttpApiProvider() {

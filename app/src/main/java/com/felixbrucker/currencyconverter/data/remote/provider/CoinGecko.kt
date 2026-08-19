@@ -1,6 +1,5 @@
 package com.felixbrucker.currencyconverter.data.remote.provider
 
-import android.util.Log
 import com.felixbrucker.currencyconverter.data.CurrenciesCatalog
 import com.felixbrucker.currencyconverter.data.remote.CurrencyEnumType
 import com.felixbrucker.currencyconverter.data.remote.ExchangeRateProvider
@@ -23,7 +22,7 @@ import kotlin.time.Instant
 
 class CoinGecko(
     override val name: String = NAME,
-    override val defaultEnabled: Boolean = false,
+    override val defaultEnabled: Boolean = true,
     override val updateFrequency: Duration = 5.minutes,
     override val supportedCurrencyTypes: Set<CurrencyEnumType> = setOf(CurrencyEnumType.Crypto),
 ): ExchangeRateProvider, HttpApiProvider() {
@@ -74,24 +73,20 @@ class CoinGecko(
         var latestUpdatedAt = Instant.DISTANT_PAST
         // CoinGecko allows up to 500 coins per request for simple/price
         coinGeckoIds.chunked(500).forEach { chunk ->
-            try {
-                val idsString = chunk.joinToString(",")
-                val response = api.getPrices(ids = idsString, vsCurrencies = "usd")
-                response.forEach { (id, priceResult) ->
-                        val usdPrice = priceResult.usd
-                        val code = coinGeckoIdsToCode[id] ?: return@forEach
-                        allRates[code.uppercase()] = 1.0 / usdPrice
-                    }
-                val updatedAt = response
-                    .mapNotNull { (_, priceResult) ->
-                        Instant.fromEpochSeconds(priceResult.lastUpdatedAtUnix)
-                    }
-                    .maxOrNull() ?: Instant.DISTANT_PAST
-                if (latestUpdatedAt < updatedAt) {
-                    latestUpdatedAt = updatedAt
+            val idsString = chunk.joinToString(",")
+            val response = api.getPrices(ids = idsString, vsCurrencies = "usd")
+            response.forEach { (id, priceResult) ->
+                val usdPrice = priceResult.usd
+                val code = coinGeckoIdsToCode[id] ?: return@forEach
+                allRates[code.uppercase()] = 1.0 / usdPrice
+            }
+            val updatedAt = response
+                .mapNotNull { (_, priceResult) ->
+                    Instant.fromEpochSeconds(priceResult.lastUpdatedAtUnix)
                 }
-            } catch (e: Exception) {
-                Log.w(name, "Failed to fetch prices chunk: ${e.message}")
+                .maxOrNull() ?: Instant.DISTANT_PAST
+            if (latestUpdatedAt < updatedAt) {
+                latestUpdatedAt = updatedAt
             }
         }
 

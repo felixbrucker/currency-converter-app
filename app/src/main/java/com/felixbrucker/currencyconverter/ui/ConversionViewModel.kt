@@ -1,6 +1,7 @@
 package com.felixbrucker.currencyconverter.ui
 
 import android.app.Application
+import androidx.compose.material3.SnackbarDuration
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.felixbrucker.currencyconverter.data.CurrenciesCatalog
@@ -10,15 +11,19 @@ import com.felixbrucker.currencyconverter.data.local.UserCurrencyEntity
 import com.felixbrucker.currencyconverter.data.remote.ExchangeRateProvider
 import com.felixbrucker.currencyconverter.data.repository.CurrencyRepository
 import com.felixbrucker.currencyconverter.data.worker.ExchangeRateSyncWorker
+import com.felixbrucker.currencyconverter.extensions.aggregate
 import com.felixbrucker.currencyconverter.model.ConversionRowState
 import com.felixbrucker.currencyconverter.model.Currency
 import com.felixbrucker.currencyconverter.model.CurrencyType
 import com.felixbrucker.currencyconverter.util.CurrencyFormatter
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
@@ -36,7 +41,6 @@ data class ConversionUiState(
     val isHintActive: Boolean = true,
     val lastUpdatedTimestamp: Long = 0L,
     val isRefreshing: Boolean = false,
-    val refreshMessage: String? = null,
     val maxCountdownSeconds: Int = 300,
     val isOnline: Boolean = true,
     val bgSyncEnabled: Boolean = true,
@@ -50,13 +54,19 @@ class ConversionViewModel(application: Application) : AndroidViewModel(applicati
 
     private val repository = CurrencyRepository.getInstance(application)
 
+    sealed class UiEvent {
+        data class ShowSnackbar(val message: String, val duration: SnackbarDuration = SnackbarDuration.Short) : UiEvent()
+    }
+
+    private val _uiEvent = MutableSharedFlow<UiEvent>()
+    val uiEvent: SharedFlow<UiEvent> = _uiEvent.asSharedFlow()
+
     private val _activeCurrencyCode = MutableStateFlow("USD")
     private val _activeHintAmount = MutableStateFlow("1.00")
     private val _activeInputText = MutableStateFlow("")
     private val _isHintActive = MutableStateFlow(true)
 
     private val _isRefreshing = MutableStateFlow(false)
-    private val _refreshMessage = MutableStateFlow<String?>(null)
     private val _isOnline = MutableStateFlow(true)
 
     private val _searchQuery = MutableStateFlow("")
@@ -152,7 +162,6 @@ class ConversionViewModel(application: Application) : AndroidViewModel(applicati
         repository.ratesFlow,
         repository.lastUpdatedFlow,
         _isRefreshing,
-        _refreshMessage,
         _isOnline,
         _bgSyncEnabled,
         _bgSyncIntervalHours,
@@ -172,7 +181,6 @@ class ConversionViewModel(application: Application) : AndroidViewModel(applicati
         val rates = params[idx++] as Map<String, ExchangeRateEntity>
         val lastUpdated = params[idx++] as Long
         val isRef = params[idx++] as Boolean
-        val refMsg = params[idx++] as String?
         val isOnline = params[idx++] as Boolean
         val bgSyncEn = params[idx++] as Boolean
         val bgSyncHrs = params[idx++] as Long
@@ -275,7 +283,6 @@ class ConversionViewModel(application: Application) : AndroidViewModel(applicati
             isHintActive = isHint,
             lastUpdatedTimestamp = lastUpdated,
             isRefreshing = isRef,
-            refreshMessage = refMsg,
             maxCountdownSeconds = maxCountdown,
             isOnline = isOnline,
             bgSyncEnabled = bgSyncEn,
@@ -386,11 +393,16 @@ class ConversionViewModel(application: Application) : AndroidViewModel(applicati
                 _isRefreshing.value = false
             }
             if (result.isSuccess) {
+                val syncResult = result.getOrThrow()
                 _isOnline.value = true
-                _refreshMessage.value = "Updated rates successfully"
+                if (syncResult.providerErrors.isNotEmpty()) {
+                    val error = syncResult.providerErrors.aggregate()
+                    _uiEvent.emit(UiEvent.ShowSnackbar("Partial sync: ${error.message}", duration = SnackbarDuration.Long))
+                }
             } else {
                 _isOnline.value = false
-                _refreshMessage.value = "Failed to update rates: using offline cache"
+                val error = result.exceptionOrNull()?.message ?: "Unknown error"
+                _uiEvent.emit(UiEvent.ShowSnackbar("Sync failed: $error", duration = SnackbarDuration.Long))
             }
             _countdownSeconds.value = _maxCountdownSeconds.value
         }

@@ -13,6 +13,7 @@ import com.felixbrucker.currencyconverter.data.remote.LatestRatesResponse
 import com.felixbrucker.currencyconverter.data.remote.provider.CoinGecko
 import com.felixbrucker.currencyconverter.data.remote.provider.ExchangeRateApi
 import com.felixbrucker.currencyconverter.data.remote.provider.Frankfurter
+import com.felixbrucker.currencyconverter.extensions.aggregate
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -106,70 +107,91 @@ class CurrencyRepository(
         }
     }
 
-    suspend fun refreshRates(): Result<Int> = withContext(Dispatchers.IO) {
+    data class SyncResult(
+        val updatedCurrenciesCount: Int,
+        val providerErrors: Map<String, Throwable>
+    )
+
+    suspend fun refreshRates(): Result<SyncResult> = withContext(Dispatchers.IO) {
         val now = now()
         try {
             val eligibleProviders = dao.getEligibleProvidersForSync(now = now)
             if (eligibleProviders.isEmpty()) {
-                return@withContext Result.success(0)
+                return@withContext Result.success(SyncResult(0, emptyMap()))
             }
             val freshRateEntities = mutableMapOf<String, ExchangeRateEntity>()
+            val errors = mutableMapOf<String, Throwable>()
             var anySuccess = false
 
             coroutineScope {
-                val deferreds = eligibleProviders.map { providerEntity ->
+                val results = eligibleProviders.mapNotNull { providerEntity ->
+                    val provider = exchangeRateProviders[providerEntity.name] ?: return@mapNotNull null
+
                     async {
-                        val provider = exchangeRateProviders[providerEntity.name] ?: return@async null
                         val response: LatestRatesResponse
                         try {
                             response = provider.getLatestUsdRates()
                         } catch (e: Exception) {
                             Log.w(TAG, "Failed to fetch from ${provider.name}: ${e.message}")
 
-                            return@async null
+                            return@async provider.name to Result.failure(e)
                         }
                         if (response.rates.isEmpty()) {
-                            return@async null
+                            return@async provider.name to Result.failure(
+                                Exception("No rates returned by ${provider.name}")
+                            )
                         }
                         dao.updateProviderSyncTimes(
                             name = provider.name,
                             lastUpdatedAt = response.updatedAt,
                             nextUpdateAt = response.nextUpdateAt,
                         )
-
-                        response
+                        provider.name to Result.success(response)
                     }
-                }
+                }.awaitAll()
 
-                // Update/insert all rate entities which have newer rates from the api
                 val existingRateEntities = (dao.getAllRates().firstOrNull() ?: emptyList()).associateBy { it.code }
-                deferreds.awaitAll().filterNotNull().forEach { response ->
-                    response.rates.forEach { (code, rate) ->
-                        val entity = ExchangeRateEntity(
-                            code = code.uppercase(),
-                            rateToUsd = rate,
-                            lastUpdatedAt = response.updatedAt
-                        )
-                        val existingRateEntity = existingRateEntities[entity.code]
-                        if (existingRateEntity != null && existingRateEntity.lastUpdatedAt >= entity.lastUpdatedAt) {
-                            return@forEach
+
+                results.forEach { (name, result) ->
+                    result.fold(
+                        onSuccess = { response ->
+                            anySuccess = true
+                            response.rates.forEach { (code, rate) ->
+                                val entity = ExchangeRateEntity(
+                                    code = code.uppercase(),
+                                    rateToUsd = rate,
+                                    lastUpdatedAt = response.updatedAt
+                                )
+                                val existingRateEntity = existingRateEntities[entity.code]
+                                if (existingRateEntity != null && existingRateEntity.lastUpdatedAt >= entity.lastUpdatedAt) {
+                                    return@forEach
+                                }
+                                val existingFreshRateEntity = freshRateEntities[entity.code]
+                                if (existingFreshRateEntity == null || existingFreshRateEntity.lastUpdatedAt < entity.lastUpdatedAt) {
+                                    freshRateEntities[entity.code] = entity
+                                }
+                            }
+                        },
+                        onFailure = { error ->
+                            errors[name] = error
                         }
-                        val existingFreshRateEntity = freshRateEntities[entity.code]
-                        if (existingFreshRateEntity == null || existingFreshRateEntity.lastUpdatedAt < entity.lastUpdatedAt) {
-                            freshRateEntities[entity.code] = entity
-                        }
-                    }
-                    anySuccess = true
+                    )
                 }
             }
 
-            if (anySuccess) {
+            val updatedCount = if (anySuccess) {
                 val entities = freshRateEntities.values.toList()
                 dao.insertRates(entities)
                 dao.setSetting(AppSettingEntity(KEY_LAST_SYNC_TIME, now.toEpochMilliseconds().toString()))
-                Result.success(entities.size)
+                entities.size
             } else {
-                Result.failure(Exception("No exchange rates retrieved from servers"))
+                0
+            }
+
+            if (anySuccess || errors.isEmpty()) {
+                Result.success(SyncResult(updatedCount, errors))
+            } else {
+                Result.failure(errors.aggregate())
             }
         } catch (e: Exception) {
             Log.e(TAG, "Error refreshing rates", e)

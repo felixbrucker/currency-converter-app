@@ -1,5 +1,9 @@
 package com.felixbrucker.currencyconverter.ui
 
+import android.Manifest
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -35,9 +39,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.felixbrucker.currencyconverter.data.remote.CurrencyEnumType
 import com.felixbrucker.currencyconverter.ui.components.IndicatorBox
@@ -50,7 +56,15 @@ fun SettingsScreen(
     viewModel: ConversionViewModel,
     onBack: () -> Unit
 ) {
+    val context = LocalContext.current
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission(),
+        onResult = { _ ->
+            // Permission result handled by the system notification helper check
+        }
+    )
 
     var sliderValue by remember(uiState.bgSyncIntervalHours) {
         mutableFloatStateOf(uiState.bgSyncIntervalHours.toFloat())
@@ -112,7 +126,22 @@ fun SettingsScreen(
                         }
                         Switch(
                             checked = uiState.bgSyncEnabled,
-                            onCheckedChange = { viewModel.setBgSyncEnabled(it) },
+                            onCheckedChange = { enabled ->
+                                if (enabled) {
+                                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                                        val hasPermission = ContextCompat.checkSelfPermission(
+                                            context,
+                                            Manifest.permission.POST_NOTIFICATIONS
+                                        ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+                                        if (!hasPermission) {
+                                            permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                                        }
+                                    }
+                                    viewModel.setBgSyncEnabled(true)
+                                } else {
+                                    viewModel.setBgSyncEnabled(false)
+                                }
+                            },
                             modifier = Modifier.testTag("bg_sync_switch")
                         )
                     }

@@ -10,6 +10,8 @@ import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import com.felixbrucker.currencyconverter.data.repository.CurrencyRepository
+import com.felixbrucker.currencyconverter.extensions.aggregate
+import com.felixbrucker.currencyconverter.util.SyncNotificationHelper
 import java.util.concurrent.TimeUnit
 
 class ExchangeRateSyncWorker(
@@ -22,10 +24,19 @@ class ExchangeRateSyncWorker(
         val repository = CurrencyRepository.getInstance(applicationContext)
         val result = repository.refreshRates()
         return if (result.isSuccess) {
-            Log.d(TAG, "Background sync successful: updated ${result.getOrNull()} currencies")
+            val syncResult = result.getOrThrow()
+            if (syncResult.providerErrors.isNotEmpty()) {
+                val error = syncResult.providerErrors.aggregate()
+                Log.w(TAG, "Background sync partial success: updated ${syncResult.updatedCurrenciesCount} currencies. Errors: $error")
+                SyncNotificationHelper.showSyncErrorNotification(applicationContext, "Partial success. Errors: $error")
+            } else {
+                Log.d(TAG, "Background sync successful: updated ${syncResult.updatedCurrenciesCount} currencies")
+            }
             Result.success()
         } else {
-            Log.w(TAG, "Background sync failed: ${result.exceptionOrNull()?.message}")
+            val error = result.exceptionOrNull()?.message
+            Log.w(TAG, "Background sync failed: $error")
+            SyncNotificationHelper.showSyncErrorNotification(applicationContext, error)
             Result.retry()
         }
     }
