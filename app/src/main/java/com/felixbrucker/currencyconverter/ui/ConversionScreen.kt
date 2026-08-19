@@ -1,5 +1,6 @@
 package com.felixbrucker.currencyconverter.ui
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -21,6 +22,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -28,12 +30,17 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.SwipeToDismissBoxDefaults
+import androidx.compose.material3.SwipeToDismissBoxState
+import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -41,6 +48,7 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.testTag
@@ -165,13 +173,55 @@ fun ConversionScreen(
                                     )
                                 }
                         ) {
-                            ConversionCard(
-                                rowState = rowState,
-                                isDragging = isDragging,
-                                onRowFocus = { code -> viewModel.onRowFocused(code) },
-                                onAmountChange = { input -> viewModel.onAmountInputChanged(input) },
-                                onFinishInput = { viewModel.onFinishInput() },
-                                onCurrencyClick = { showCurrencySheet = true },
+                            val currentCode = rowState.currency.code
+                            // Use remember(currentCode) and manual construction to avoid rememberSaveable
+                            // which restores the "dismissed" state for the item's key upon re-addition.
+                            val threshold = SwipeToDismissBoxDefaults.positionalThreshold
+                            val dismissState = remember(currentCode) {
+                                SwipeToDismissBoxState(
+                                    initialValue = SwipeToDismissBoxValue.Settled,
+                                    positionalThreshold = threshold
+                                )
+                            }
+
+                            SwipeToDismissBox(
+                                state = dismissState,
+                                enableDismissFromStartToEnd = false,
+                                onDismiss = { direction ->
+                                    if (direction == SwipeToDismissBoxValue.EndToStart) {
+                                        viewModel.onToggleCurrency(currentCode, false)
+                                    }
+                                },
+                                backgroundContent = {
+                                    val color = when (dismissState.dismissDirection) {
+                                        SwipeToDismissBoxValue.EndToStart -> Color.Red.copy(alpha = 0.8f)
+                                        else -> Color.Transparent
+                                    }
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .padding(horizontal = 16.dp, vertical = 4.dp)
+                                            .background(color, RoundedCornerShape(16.dp)),
+                                        contentAlignment = Alignment.CenterEnd
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Delete,
+                                            contentDescription = "Remove",
+                                            tint = Color.White,
+                                            modifier = Modifier.padding(end = 16.dp)
+                                        )
+                                    }
+                                },
+                                content = {
+                                    ConversionCard(
+                                        rowState = rowState,
+                                        isDragging = isDragging,
+                                        onRowFocus = { code -> viewModel.onRowFocused(code) },
+                                        onAmountChange = { input -> viewModel.onAmountInputChanged(input) },
+                                        onFinishInput = { viewModel.onFinishInput() },
+                                        onCurrencyClick = { showCurrencySheet = true },
+                                    )
+                                }
                             )
                         }
                     }
