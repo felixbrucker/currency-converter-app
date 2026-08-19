@@ -39,7 +39,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -63,7 +62,7 @@ fun CurrencySelectorSheet(
         dragHandle = null,
         shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
         containerColor = MaterialTheme.colorScheme.surface,
-        modifier = Modifier.testTag("currency_selector_sheet")
+        modifier = Modifier
     ) {
         Column(
             modifier = Modifier
@@ -97,7 +96,7 @@ fun CurrencySelectorSheet(
 
                 IconButton(
                     onClick = onDismiss,
-                    modifier = Modifier.testTag("close_sheet_button")
+                    modifier = Modifier
                 ) {
                     Icon(
                         imageVector = Icons.Default.Close,
@@ -114,8 +113,7 @@ fun CurrencySelectorSheet(
                 onValueChange = onSearchChange,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 20.dp)
-                    .testTag("currency_search_input"),
+                    .padding(horizontal = 20.dp),
                 placeholder = { Text("Search by code, country, or name...") },
                 leadingIcon = {
                     Icon(
@@ -164,7 +162,6 @@ fun CurrencySelectorSheet(
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(horizontal = 8.dp)
-                        .testTag("currencies_list")
                 ) {
                     items(currencies, key = { it.first.code }) { (currency, isSelected) ->
                         CurrencyListItem(
@@ -193,7 +190,6 @@ private fun CurrencyListItem(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 8.dp, vertical = 3.dp)
-            .testTag("currency_item_${currency.code}")
     ) {
         Row(
             modifier = Modifier
@@ -269,7 +265,7 @@ private fun CurrencyListItem(
                     checkedColor = MaterialTheme.colorScheme.primary,
                     uncheckedColor = MaterialTheme.colorScheme.outline
                 ),
-                modifier = Modifier.testTag("checkbox_${currency.code}")
+                modifier = Modifier
             )
         }
     }

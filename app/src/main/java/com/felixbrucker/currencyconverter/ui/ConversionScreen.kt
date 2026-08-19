@@ -53,7 +53,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -129,8 +128,7 @@ fun ConversionScreen(
                 LazyColumn(
                     state = listState,
                     modifier = Modifier
-                        .fillMaxSize()
-                        .testTag("conversion_list"),
+                        .fillMaxSize(),
                     contentPadding = PaddingValues(bottom = 16.dp)
                 ) {
                     itemsIndexed(
@@ -261,7 +259,7 @@ fun ConversionScreen(
                                     contentColor = MaterialTheme.colorScheme.onPrimary
                                 ),
                                 contentPadding = PaddingValues(horizontal = 20.dp, vertical = 12.dp),
-                                modifier = Modifier.testTag("add_currency_button")
+                                modifier = Modifier
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.Add,
@@ -281,7 +279,7 @@ fun ConversionScreen(
                             // "Mid-market rates ⓘ" button
                             TextButton(
                                 onClick = { showRatesInfoDialog = true },
-                                modifier = Modifier.testTag("mid_market_info_button")
+                                modifier = Modifier
                             ) {
                                 Text(
                                     text = "Mid-market rates",

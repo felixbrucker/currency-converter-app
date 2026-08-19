@@ -54,7 +54,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
-import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.Placeholder
 import androidx.compose.ui.text.PlaceholderVerticalAlign
 import androidx.compose.ui.text.buildAnnotatedString
@@ -205,7 +204,7 @@ fun SettingsScreen(
                                     viewModel.setBgSyncEnabled(false)
                                 }
                             },
-                            modifier = Modifier.testTag("bg_sync_switch")
+                            modifier = Modifier
                         )
                     }
 
@@ -242,7 +241,7 @@ fun SettingsScreen(
                         enabled = uiState.bgSyncEnabled,
                         valueRange = 1f..24f,
                         steps = 22,
-                        modifier = Modifier.testTag("sync_interval_slider")
+                        modifier = Modifier
                     )
 
                     Row(
@@ -316,7 +315,7 @@ fun SettingsScreen(
                         },
                         valueRange = 1f..10f,
                         steps = 8,
-                        modifier = Modifier.testTag("auto_refresh_slider")
+                        modifier = Modifier
                     )
                 }
             }

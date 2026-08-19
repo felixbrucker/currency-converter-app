@@ -26,7 +26,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -74,7 +73,6 @@ fun UpdateTimerHeader(
                 contentAlignment = Alignment.Center,
                 modifier = Modifier
                     .size(42.dp)
-                    .testTag("timer_progress_box")
             ) {
                 if (isRefreshing) {
                     CircularProgressIndicator(
@@ -168,7 +166,6 @@ fun UpdateTimerHeader(
                 color = MaterialTheme.colorScheme.primaryContainer,
                 modifier = Modifier
                     .size(42.dp)
-                    .testTag("header_search_button")
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Icon(
@@ -187,7 +184,6 @@ fun UpdateTimerHeader(
                 color = MaterialTheme.colorScheme.primaryContainer,
                 modifier = Modifier
                     .size(42.dp)
-                    .testTag("settings_button")
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Icon(

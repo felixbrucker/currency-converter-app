@@ -44,7 +44,6 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalFocusManager
-import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -109,7 +108,6 @@ fun ConversionCard(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 6.dp)
-            .testTag("conversion_card_${rowState.currency.code}")
             .clickable {
                 if (!isActive) {
                     onRowFocus(rowState.currency.code)
@@ -138,7 +136,7 @@ fun ConversionCard(
                 onClick = { onCurrencyClick(rowState.currency.code) },
                 shape = RoundedCornerShape(14.dp),
                 color = Color.Transparent,
-                modifier = Modifier.testTag("currency_badge_${rowState.currency.code}")
+                modifier = Modifier
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -258,8 +256,7 @@ fun ConversionCard(
                                     if (wasFocused && !focusState.isFocused) {
                                         onFinishInput()
                                     }
-                                }
-                                .testTag("amount_input_${rowState.currency.code}"),
+                                },
                             textStyle = MaterialTheme.typography.titleLarge.copy(
                                 fontWeight = FontWeight.SemiBold,
                                 fontSize = 24.sp,
@@ -314,7 +311,7 @@ fun ConversionCard(
                             ),
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.testTag("amount_display_${rowState.currency.code}")
+                            modifier = Modifier
                         )
                     }
                 }
@@ -336,7 +333,6 @@ fun ConversionCard(
                         textAlign = TextAlign.End,
                         modifier = Modifier
                             .padding(top = 2.dp)
-                            .testTag("rate_text_${rowState.currency.code}")
                     )
                 }
             }
