@@ -27,7 +27,7 @@ class ExchangeRateSyncWorker(
             val syncResult = result.getOrThrow()
             if (syncResult.providerErrors.isNotEmpty()) {
                 val error = syncResult.providerErrors.aggregate()
-                Log.w(TAG, "Background sync partial success: updated ${syncResult.updatedCurrenciesCount} currencies. Errors: $error")
+                Log.w(TAG, "Background sync partial success: updated ${syncResult.updatedCurrenciesCount} currencies. Errors: ${error.message}")
                 SyncNotificationHelper.showSyncErrorNotification(applicationContext, "Partial success. Errors: $error")
             } else {
                 Log.d(TAG, "Background sync successful: updated ${syncResult.updatedCurrenciesCount} currencies")
