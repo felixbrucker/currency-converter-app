@@ -54,17 +54,27 @@ object CurrencyFormatter {
     }
 
     fun cleanInput(input: String): String {
-        // Keep digits and at most one decimal point
+        // Keep digits, math operators and at most one decimal point (unless in math expression)
         val cleaned = StringBuilder()
+        val mathOperators = setOf('+', '-', '*', '/', '(', ')', '×', '÷')
         var hasDot = false
+        val isMath = input.any { it in mathOperators }
+
         for (char in input) {
             if (char.isDigit()) {
                 cleaned.append(char)
-            } else if ((char == '.' || char == ',') && !hasDot) {
-                cleaned.append('.')
-                hasDot = true
+            } else if (char == '.' || char == ',') {
+                if (isMath) {
+                    cleaned.append('.') // In math, we might have multiple dots (e.g. 1.5 + 2.5)
+                } else if (!hasDot) {
+                    cleaned.append('.')
+                    hasDot = true
+                }
+            } else if (char in mathOperators) {
+                cleaned.append(char)
             }
         }
         return cleaned.toString()
     }
+
 }

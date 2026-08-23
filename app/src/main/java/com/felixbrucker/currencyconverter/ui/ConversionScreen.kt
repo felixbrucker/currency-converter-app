@@ -8,14 +8,17 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -60,11 +63,12 @@ import androidx.compose.ui.zIndex
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.felixbrucker.currencyconverter.ui.components.ConversionCard
 import com.felixbrucker.currencyconverter.ui.components.CurrencySelectorSheet
+import com.felixbrucker.currencyconverter.ui.components.MathOperatorToolbar
 import com.felixbrucker.currencyconverter.ui.components.RatesInfoDialog
 import com.felixbrucker.currencyconverter.ui.components.UpdateTimerHeader
 import kotlinx.coroutines.flow.collectLatest
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun ConversionScreen(
     viewModel: ConversionViewModel,
@@ -99,7 +103,15 @@ fun ConversionScreen(
     Scaffold(
         modifier = modifier.fillMaxSize(),
         contentWindowInsets = WindowInsets.safeDrawing,
-        snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
+        bottomBar = {
+            if (uiState.rows.any { it.isFocused } && WindowInsets.isImeVisible) {
+                MathOperatorToolbar(
+                    onOperatorClick = { viewModel.onAppendInput(it) },
+                    modifier = Modifier.imePadding()
+                )
+            }
+        }
     ) { innerPadding ->
         Column(
             modifier = Modifier

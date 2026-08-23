@@ -44,9 +44,11 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -72,6 +74,19 @@ fun ConversionCard(
     var isFieldFocused by remember { mutableStateOf(false) }
 
     val isActive = rowState.isFocused
+
+    var textFieldValue by remember(isActive) {
+        mutableStateOf(TextFieldValue(rowState.enteredText, TextRange(rowState.enteredText.length)))
+    }
+
+    LaunchedEffect(rowState.enteredText, textFieldValue.text) {
+        if (textFieldValue.text != rowState.enteredText) {
+            textFieldValue = TextFieldValue(
+                text = rowState.enteredText,
+                selection = TextRange(rowState.enteredText.length)
+            )
+        }
+    }
 
     // Track if we've already performed the initial focus for this row while it's active.
     // Using rememberSaveable ensures this persists across navigation/process death,
@@ -246,8 +261,11 @@ fun ConversionCard(
 
                     if (isActive) {
                         BasicTextField(
-                            value = rowState.enteredText,
-                            onValueChange = { onAmountChange(it) },
+                            value = textFieldValue,
+                            onValueChange = { newValue ->
+                                textFieldValue = newValue
+                                onAmountChange(newValue.text)
+                            },
                             modifier = Modifier
                                 .focusRequester(focusRequester)
                                 .onFocusChanged { focusState ->

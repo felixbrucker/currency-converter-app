@@ -237,7 +237,13 @@ class ConversionViewModel(application: Application) : AndroidViewModel(applicati
         val effectiveAmount: Double = if (isHint || activeInput.isBlank()) {
             activeHint.replace(",", "").toDoubleOrNull() ?: 1.0
         } else {
-            activeInput.replace(",", "").toDoubleOrNull() ?: 0.0
+            // Try to parse the input, but if it contains math, use the last valid amount for real-time conversion
+            val mathOperators = setOf('+', '-', '*', '/', '(', ')', '×', '÷')
+            if (activeInput.any { it in mathOperators }) {
+                activeHint.replace(",", "").toDoubleOrNull() ?: 1.0
+            } else {
+                activeInput.replace(",", "").toDoubleOrNull() ?: 0.0
+            }
         }
 
         val now = now()
@@ -352,23 +358,51 @@ class ConversionViewModel(application: Application) : AndroidViewModel(applicati
         }
     }
 
+    fun onAppendInput(text: String) {
+        val current = _activeInputText.value
+        onAmountInputChanged(current + text)
+    }
+
     fun onAmountInputChanged(input: String) {
-        val cleaned = CurrencyFormatter.cleanInput(input)
+        val mathOperators = setOf('+', '-', '*', '/', '(', ')', '×', '÷')
+        val isStartingWithMath = input.length == 1 && input[0] in mathOperators
+
+        val finalInput = if (isStartingWithMath && _activeInputText.value.isEmpty()) {
+            _activeHintAmount.value.replace(",", "") + input
+        } else {
+            input
+        }
+
+        val cleaned = CurrencyFormatter.cleanInput(finalInput)
         _activeInputText.value = cleaned
         _isHintActive.value = cleaned.isBlank()
 
         viewModelScope.launch {
             if (cleaned.isNotBlank()) {
-                repository.setSetting(CurrencyRepository.KEY_ACTIVE_INPUT_AMOUNT, cleaned)
+                val isMath = cleaned.any { it in mathOperators }
+                if (!isMath) {
+                    val parsed = cleaned.toDoubleOrNull()
+                    if (parsed != null) {
+                        _activeHintAmount.value = cleaned
+                    }
+                    repository.setSetting(CurrencyRepository.KEY_ACTIVE_INPUT_AMOUNT, cleaned)
+                }
             }
         }
     }
 
     fun onFinishInput() {
         val currentInput = _activeInputText.value.trim()
+        val mathOperators = setOf('+', '-', '*', '/', '(', ')', '×', '÷')
+        
         if (currentInput.isNotBlank()) {
-            val parsed = currentInput.toDoubleOrNull()
-            if (parsed != null && parsed > 0.0) {
+            val parsed = if (currentInput.any { it in mathOperators }) {
+                com.felixbrucker.currencyconverter.util.MathEvaluator.evaluate(currentInput)
+            } else {
+                currentInput.toDoubleOrNull()
+            }
+
+            if (parsed != null && parsed.isFinite() && parsed > 0.0) {
                 CurrenciesCatalog
                     .find(_activeCurrencyCode.value)
                     ?.let { activeCurrency ->
