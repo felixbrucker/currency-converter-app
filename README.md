@@ -10,7 +10,7 @@ A modern, offline-first currency converter for Android. Built with the latest Je
 
 |               Conversion Screen                |                    Quick Math                    |                        Search Currencies                         |                   Settings                   |
 |:----------------------------------------------:|:------------------------------------------------:|:----------------------------------------------------------------:|:--------------------------------------------:|
-| ![Main View](assets/screenshots/main-view.jpg) | ![Quick Math](assets/screenshots/quick-math.jpg) | ![Currency Selection](assets/screenshots/currency-selection.jpg) | ![Settings](assets/screenshots/settings.jpg) |
+| <img src="assets/screenshots/main-view.jpg" width="200"> | <img src="assets/screenshots/quick-math.jpg" width="200"> | <img src="assets/screenshots/currency-selection.jpg" width="200"> | <img src="assets/screenshots/settings.jpg" width="200"> |
 
 ## ✨ Features
 
