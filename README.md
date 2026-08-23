@@ -6,6 +6,12 @@
 
 A modern, offline-first currency converter for Android. Built with the latest Jetpack libraries, Material 3 design, and a focus on reliability and customizability.
 
+## 📸 Screenshots
+
+|               Conversion Screen                |                    Quick Math                    |                        Search Currencies                         |                   Settings                   |
+|:----------------------------------------------:|:------------------------------------------------:|:----------------------------------------------------------------:|:--------------------------------------------:|
+| ![Main View](assets/screenshots/main-view.jpg) | ![Quick Math](assets/screenshots/quick-math.jpg) | ![Currency Selection](assets/screenshots/currency-selection.jpg) | ![Settings](assets/screenshots/settings.jpg) |
+
 ## ✨ Features
 
 - **Multi-Source Data**: Integrated with multiple exchange rate providers:
@@ -17,6 +23,7 @@ A modern, offline-first currency converter for Android. Built with the latest Je
 - **Offline First**: All data is cached locally using **Room**, ensuring you can convert currencies even without an internet connection.
 - **Background Sync**: Uses **WorkManager** to periodically update rates in the background based on your preferences.
 - **Real-time Conversion**: Responsive UI that updates all currency rows instantly as you type.
+- **Quick Math Manipulation**: Perform basic arithmetic (`+`, `-`, `×`, `÷`) directly in the input fields. Features a dedicated operator toolbar for quick calculations.
 - **Material 3 Design**: A beautiful, modern interface with support for **Dark Mode** and **Dynamic Colors**.
 - **Privacy Focused**: No tracking. All settings and data stay on your device, with optional Android Auto-Backup support.
 - **Customizable Experience**: Choose your data providers and set custom sync intervals.
