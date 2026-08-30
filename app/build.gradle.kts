@@ -68,6 +68,7 @@ android {
 androidComponents {
   onVariants(selector().withBuildType("release")) { variant ->
     variant.outputs.forEach { output ->
+      @Suppress("UnstableApiUsage")
       output.outputFileName.set("currency-converter-${output.versionName.get()}.apk")
     }
   }
