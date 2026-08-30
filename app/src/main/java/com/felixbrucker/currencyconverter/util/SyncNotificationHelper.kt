@@ -36,10 +36,12 @@ object SyncNotificationHelper {
             PendingIntent.FLAG_IMMUTABLE
         )
 
+        val text = errorMessage ?: "An error occurred while updating exchange rates."
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(android.R.drawable.ic_dialog_alert) // Replace with app icon if available
             .setContentTitle("Sync Failed")
-            .setContentText(errorMessage ?: "An error occurred while updating exchange rates.")
+            .setContentText(text)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(text))
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .setAutoCancel(true)
             .setContentIntent(pendingIntent)
