@@ -33,9 +33,11 @@ import kotlinx.coroutines.launch
 import kotlin.text.lowercase
 import kotlin.text.uppercase
 import kotlin.time.Clock.System.now
+import androidx.compose.runtime.Immutable
 import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.seconds
 
+@Immutable
 data class ConversionUiState(
     val rows: List<ConversionRowState> = emptyList(),
     val activeCurrencyCode: String = "USD",
@@ -171,12 +173,9 @@ class ConversionViewModel(application: Application) : AndroidViewModel(applicati
         } else {
             val q = search.trim().lowercase()
             allCurrenciesWithFlags.filter { (c, _) ->
-                c.code.lowercase().contains(q) ||
-                        c.name.lowercase().contains(q) ||
-                        when (c.type) {
-                            is CurrencyType.Fiat -> c.type.country.lowercase().contains(q)
-                            is CurrencyType.Crypto -> c.type.coinGeckoId.lowercase().contains(q)
-                        }
+                c.lowerCode.contains(q) ||
+                        c.lowerName.contains(q) ||
+                        c.lowerTypeKey.contains(q)
             }
         }
     }.stateIn(

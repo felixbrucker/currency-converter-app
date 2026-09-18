@@ -1,5 +1,8 @@
 package com.felixbrucker.currencyconverter.model
 
+import androidx.compose.runtime.Immutable
+
+@Immutable
 data class ConversionRowState(
     val currency: Currency,
     val isFocused: Boolean,
