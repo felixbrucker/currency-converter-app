@@ -100,6 +100,12 @@ fun ConversionScreen(
     var draggedIndex by remember { mutableStateOf<Int?>(null) }
     var dragOffsetY by remember { mutableFloatStateOf(0f) }
 
+    // Remember callbacks to avoid re-allocating lambdas on every recomposition/countdown tick
+    val onRowFocus = remember(viewModel) { { code: String -> viewModel.onRowFocused(code) } }
+    val onAmountChange = remember(viewModel) { { input: String -> viewModel.onAmountInputChanged(input) } }
+    val onFinishInput = remember(viewModel) { { viewModel.onFinishInput() } }
+    val onOpenCurrencySheet = remember { { _: String -> showCurrencySheet = true } }
+
     Scaffold(
         modifier = modifier.fillMaxSize(),
         contentWindowInsets = WindowInsets.safeDrawing,
@@ -242,10 +248,10 @@ fun ConversionScreen(
                                     ConversionCard(
                                         rowState = rowState,
                                         isDragging = isDragging,
-                                        onRowFocus = { code -> viewModel.onRowFocused(code) },
-                                        onAmountChange = { input -> viewModel.onAmountInputChanged(input) },
-                                        onFinishInput = { viewModel.onFinishInput() },
-                                        onCurrencyClick = { showCurrencySheet = true },
+                                        onRowFocus = onRowFocus,
+                                        onAmountChange = onAmountChange,
+                                        onFinishInput = onFinishInput,
+                                        onCurrencyClick = onOpenCurrencySheet,
                                     )
                                 }
                             )

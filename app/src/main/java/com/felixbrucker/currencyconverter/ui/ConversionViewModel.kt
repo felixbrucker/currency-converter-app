@@ -162,21 +162,36 @@ class ConversionViewModel(application: Application) : AndroidViewModel(applicati
         val search = params[idx++] as String
         @Suppress("UNCHECKED_CAST")
         val userCurrencies = params[idx++] as List<UserCurrencyEntity>
-        val selectedCodeSet = userCurrencies.filter { it.isSelected }.map { it.code.uppercase() }.toSet()
-        val allCurrenciesWithFlags = CurrenciesCatalog.allCurrencies.map { c ->
-            c to selectedCodeSet.contains(c.code.uppercase())
+
+        val selectedCodeSet = HashSet<String>(userCurrencies.size)
+        for (uc in userCurrencies) {
+            if (uc.isSelected) {
+                selectedCodeSet.add(uc.code)
+            }
         }
 
         if (search.isBlank()) {
-            val (selected, unselected) = allCurrenciesWithFlags.partition { it.second }
-            selected + unselected
+            val selected = ArrayList<Pair<Currency, Boolean>>()
+            val unselected = ArrayList<Pair<Currency, Boolean>>()
+            for (c in CurrenciesCatalog.allCurrencies) {
+                val isSelected = selectedCodeSet.contains(c.code)
+                if (isSelected) {
+                    selected.add(c to true)
+                } else {
+                    unselected.add(c to false)
+                }
+            }
+            selected.addAll(unselected)
+            selected
         } else {
             val q = search.trim().lowercase()
-            allCurrenciesWithFlags.filter { (c, _) ->
-                c.lowerCode.contains(q) ||
-                        c.lowerName.contains(q) ||
-                        c.lowerTypeKey.contains(q)
+            val filtered = ArrayList<Pair<Currency, Boolean>>()
+            for (c in CurrenciesCatalog.allCurrencies) {
+                if (c.lowerCode.contains(q) || c.lowerName.contains(q) || c.lowerTypeKey.contains(q)) {
+                    filtered.add(c to selectedCodeSet.contains(c.code))
+                }
             }
+            filtered
         }
     }.stateIn(
         scope = viewModelScope,
