@@ -22,6 +22,7 @@ moshiKotlinCodegen = "1.15.2"
 workRuntimeKtx = "2.11.2"
 navigationCompose = "2.9.8"
 coil = "3.5.0"
+kover = "0.9.9"
 
 
 [libraries]
@@ -58,3 +59,4 @@ coil-network-okhttp = { group = "io.coil-kt.coil3", name = "coil-network-okhttp"
 android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 google-devtools-ksp = { id = "com.google.devtools.ksp", version.ref = "googleDevtoolsKsp" }
+kover = { id = "org.jetbrains.kotlinx.kover", version.ref = "kover" }

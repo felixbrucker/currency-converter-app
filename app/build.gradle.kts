@@ -2,6 +2,7 @@ plugins {
   alias(libs.plugins.android.application)
   alias(libs.plugins.kotlin.compose)
   alias(libs.plugins.google.devtools.ksp)
+  alias(libs.plugins.kover)
 }
 
 ksp {
@@ -62,6 +63,32 @@ android {
   buildFeatures {
     compose = true
     buildConfig = true
+  }
+}
+kover {
+  reports {
+    total {
+      verify {
+        rule {
+          minBound(90)
+        }
+      }
+    }
+    filters {
+      excludes {
+        classes(
+          "*.BuildConfig",
+          "*_*",
+          "*JsonAdapter*",
+          "com.felixbrucker.currencyconverter.ui.composable.*",
+          "com.felixbrucker.currencyconverter.ui.components.*",
+          "com.felixbrucker.currencyconverter.ui.screens.*",
+          "com.felixbrucker.currencyconverter.ui.theme.*",
+          "com.felixbrucker.currencyconverter.ui.*",
+          "com.felixbrucker.currencyconverter.MainActivity*",
+        )
+      }
+    }
   }
 }
 
