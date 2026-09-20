@@ -12,33 +12,48 @@ object CurrencyFormatter {
         groupingSeparator = ','
     }
 
+    // Thread-local cache of DecimalFormat instances to avoid heavy allocations during rapid UI updates
+    private val threadLocalFormatters = ThreadLocal.withInitial { mutableMapOf<String, DecimalFormat>() }
+
+    // Pre-allocated pattern strings for crypto precision formatting
+    private val cryptoPatterns = Array(11) { p ->
+        "0." + "0".repeat(p.coerceAtLeast(1))
+    }
+
+    private fun getDecimalFormat(pattern: String): DecimalFormat {
+        val map = threadLocalFormatters.get() ?: mutableMapOf<String, DecimalFormat>().also { threadLocalFormatters.set(it) }
+        return map.getOrPut(pattern) {
+            DecimalFormat(pattern, symbols)
+        }
+    }
+
     fun formatAmount(amount: Double, currency: Currency): String {
         if (amount.isNaN() || amount.isInfinite()) return "0"
         return when {
             currency.isCrypto -> {
                 val precision = currency.decimalPlaces
                 when {
-                    amount >= 1000 -> DecimalFormat("#,##0.00", symbols).format(amount)
-                    amount >= 1 -> DecimalFormat("#,##0.0000", symbols).format(amount)
+                    amount >= 1000 -> getDecimalFormat("#,##0.00").format(amount)
+                    amount >= 1 -> getDecimalFormat("#,##0.0000").format(amount)
                     amount >= 0.0001 -> {
-                        val pattern = "0." + "0".repeat(precision.coerceIn(2, 8))
-                        DecimalFormat(pattern, symbols).format(amount)
+                        val p = precision.coerceIn(2, 8)
+                        getDecimalFormat(cryptoPatterns[p]).format(amount)
                     }
                     amount > 0 -> {
-                        val pattern = "0." + "0".repeat(precision.coerceIn(2, 10))
-                        DecimalFormat(pattern, symbols).format(amount)
+                        val p = precision.coerceIn(2, 10)
+                        getDecimalFormat(cryptoPatterns[p]).format(amount)
                     }
                     else -> "0.00"
                 }
             }
             currency.decimalPlaces == 0 -> {
-                DecimalFormat("#,##0", symbols).format(amount)
+                getDecimalFormat("#,##0").format(amount)
             }
             currency.decimalPlaces == 3 -> {
-                DecimalFormat("#,##0.000", symbols).format(amount)
+                getDecimalFormat("#,##0.000").format(amount)
             }
             else -> {
-                DecimalFormat("#,##0.00", symbols).format(amount)
+                getDecimalFormat("#,##0.00").format(amount)
             }
         }
     }
@@ -46,10 +61,10 @@ object CurrencyFormatter {
     fun formatRate(rate: Double, targetCurrency: Currency): String {
         if (rate.isNaN() || rate.isInfinite() || rate == 0.0) return "0.00"
         return when {
-            rate >= 1000 -> DecimalFormat("#,##0.00", symbols).format(rate)
-            rate >= 1 -> DecimalFormat("0.0000", symbols).format(rate)
-            rate >= 0.0001 -> DecimalFormat("0.000000", symbols).format(rate)
-            else -> DecimalFormat("0.00000000", symbols).format(rate)
+            rate >= 1000 -> getDecimalFormat("#,##0.00").format(rate)
+            rate >= 1 -> getDecimalFormat("0.0000").format(rate)
+            rate >= 0.0001 -> getDecimalFormat("0.000000").format(rate)
+            else -> getDecimalFormat("0.00000000").format(rate)
         }
     }
 
