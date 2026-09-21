@@ -7,84 +7,84 @@ object MathEvaluator {
      * Supports basic operator precedence.
      */
     fun evaluate(expression: String): Double? {
-        val cleanExpression = expression.replace(",", "").replace(" ", "").replace("×", "*").replace("÷", "/")
-        if (cleanExpression.isBlank()) return null
+        if (expression.isBlank()) return null
+        val sb = StringBuilder(expression.length)
+        for (i in 0 until expression.length) {
+            when (val ch = expression[i]) {
+                ',', ' ' -> {}
+                '×' -> sb.append('*')
+                '÷' -> sb.append('/')
+                else -> sb.append(ch)
+            }
+        }
+        if (sb.isEmpty()) return null
 
         return try {
-            parseExpression(cleanExpression)
+            ExpressionParser(sb.toString()).parse()
         } catch (e: Exception) {
             null
         }
     }
 
-    private fun parseExpression(expression: String): Double {
-        return object : Any() {
-            var pos = -1
-            var ch = 0
+    private class ExpressionParser(private val expression: String) {
+        private var pos = -1
+        private var ch = 0
 
-            fun nextChar() {
-                ch = if (++pos < expression.length) expression[pos].code else -1
-            }
+        private fun nextChar() {
+            ch = if (++pos < expression.length) expression[pos].code else -1
+        }
 
-            fun eat(charToEat: Int): Boolean {
-                while (ch == ' '.code) nextChar()
-                if (ch == charToEat) {
-                    nextChar()
-                    return true
-                }
-                return false
-            }
-
-            fun parse(): Double {
+        private fun eat(charToEat: Int): Boolean {
+            while (ch == ' '.code) nextChar()
+            if (ch == charToEat) {
                 nextChar()
-                val x = parseExpression()
-                if (pos < expression.length) throw RuntimeException("Unexpected: " + ch.toChar())
-                return x
+                return true
+            }
+            return false
+        }
+
+        fun parse(): Double {
+            nextChar()
+            val x = parseExpression()
+            if (pos < expression.length) throw RuntimeException("Unexpected: " + ch.toChar())
+            return x
+        }
+
+        private fun parseExpression(): Double {
+            var x = parseTerm()
+            while (true) {
+                if (eat('+'.code)) x += parseTerm()
+                else if (eat('-'.code)) x -= parseTerm()
+                else return x
+            }
+        }
+
+        private fun parseTerm(): Double {
+            var x = parseFactor()
+            while (true) {
+                if (eat('*'.code)) x *= parseFactor()
+                else if (eat('/'.code)) x /= parseFactor()
+                else return x
+            }
+        }
+
+        private fun parseFactor(): Double {
+            if (eat('+'.code)) return parseFactor()
+            if (eat('-'.code)) return -parseFactor()
+
+            var x: Double
+            val startPos = pos
+            if (eat('('.code)) {
+                x = parseExpression()
+                eat(')'.code)
+            } else if (ch >= '0'.code && ch <= '9'.code || ch == '.'.code) {
+                while (ch >= '0'.code && ch <= '9'.code || ch == '.'.code) nextChar()
+                x = expression.substring(startPos, pos).toDouble()
+            } else {
+                throw RuntimeException("Unexpected: " + ch.toChar())
             }
 
-            // Grammar:
-            // expression = term | expression `+` term | expression `-` term
-            // term = factor | term `*` factor | term `/` factor
-            // factor = `+` factor | `-` factor | `(` expression `)`
-            //        | number | functionName `(` expression `)` | factor `^` factor
-
-            fun parseExpression(): Double {
-                var x = parseTerm()
-                while (true) {
-                    if (eat('+'.code)) x += parseTerm() // addition
-                    else if (eat('-'.code)) x -= parseTerm() // subtraction
-                    else return x
-                }
-            }
-
-            fun parseTerm(): Double {
-                var x = parseFactor()
-                while (true) {
-                    if (eat('*'.code)) x *= parseFactor() // multiplication
-                    else if (eat('/'.code)) x /= parseFactor() // division
-                    else return x
-                }
-            }
-
-            fun parseFactor(): Double {
-                if (eat('+'.code)) return parseFactor() // unary plus
-                if (eat('-'.code)) return -parseFactor() // unary minus
-
-                var x: Double
-                val startPos = pos
-                if (eat('('.code)) { // parentheses
-                    x = parseExpression()
-                    eat(')'.code)
-                } else if (ch >= '0'.code && ch <= '9'.code || ch == '.'.code) { // numbers
-                    while (ch >= '0'.code && ch <= '9'.code || ch == '.'.code) nextChar()
-                    x = expression.substring(startPos, pos).toDouble()
-                } else {
-                    throw RuntimeException("Unexpected: " + ch.toChar())
-                }
-
-
-                return x
-            }
-        }.parse()
+            return x
+        }
     }
 }
