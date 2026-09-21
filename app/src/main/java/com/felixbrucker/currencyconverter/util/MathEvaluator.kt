@@ -9,8 +9,8 @@ object MathEvaluator {
     fun evaluate(expression: String): Double? {
         if (expression.isBlank()) return null
         val sb = StringBuilder(expression.length)
-        for (i in 0 until expression.length) {
-            when (val ch = expression[i]) {
+        for (ch in expression) {
+            when (ch) {
                 ',', ' ' -> {}
                 '×' -> sb.append('*')
                 '÷' -> sb.append('/')

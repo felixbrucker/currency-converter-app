@@ -76,8 +76,7 @@ object CurrencyFormatter {
         var hasDot = false
         val isMath = input.any { it in MATH_OPERATORS }
 
-        for (i in 0 until input.length) {
-            val char = input[i]
+        for (char in input) {
             if (char.isDigit()) {
                 cleaned.append(char)
             } else if (char == '.' || char == ',') {
