@@ -51,7 +51,6 @@ data class ConversionUiState(
     val bgSyncEnabled: Boolean = true,
     val bgSyncIntervalHours: Long = 12L,
     val autoRefreshMinutes: Int = 5,
-    val searchQuery: String = "",
     val providers: List<Pair<ExchangeRateProviderEntity, ExchangeRateProvider>> = emptyList()
 )
 
@@ -75,6 +74,7 @@ class ConversionViewModel(application: Application) : AndroidViewModel(applicati
     private val _isOnline = MutableStateFlow(true)
 
     private val _searchQuery = MutableStateFlow("")
+    val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
 
     private val _bgSyncEnabled = MutableStateFlow(false)
     private val _bgSyncIntervalHours = MutableStateFlow(12L)
@@ -216,7 +216,6 @@ class ConversionViewModel(application: Application) : AndroidViewModel(applicati
         _activeInputText,
         _isHintActive,
         _maxCountdownSeconds,
-        _searchQuery,
         repository.providersFlow
     ) { params: Array<Any?> ->
         var idx = 0
@@ -236,7 +235,6 @@ class ConversionViewModel(application: Application) : AndroidViewModel(applicati
         val activeInput = params[idx++] as String
         val isHint = params[idx++] as Boolean
         val maxCountdown = params[idx++] as Int
-        val search = params[idx++] as String
         @Suppress("UNCHECKED_CAST")
         val providers = params[idx++] as List<Pair<ExchangeRateProviderEntity, ExchangeRateProvider>>
 
@@ -340,7 +338,6 @@ class ConversionViewModel(application: Application) : AndroidViewModel(applicati
             bgSyncEnabled = bgSyncEn,
             bgSyncIntervalHours = bgSyncHrs,
             autoRefreshMinutes = autoMins,
-            searchQuery = search,
             providers = providers,
         )
     }.stateIn(

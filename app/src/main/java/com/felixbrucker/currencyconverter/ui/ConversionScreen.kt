@@ -76,7 +76,6 @@ fun ConversionScreen(
     modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val allCurrenciesWithSelection by viewModel.allCurrenciesWithSelection.collectAsStateWithLifecycle()
     val countdownSeconds by viewModel.countdownSeconds.collectAsStateWithLifecycle()
 
     var showCurrencySheet by remember { mutableStateOf(false) }
@@ -323,9 +322,12 @@ fun ConversionScreen(
 
     // Modal Sheets and Dialogs
     if (showCurrencySheet) {
+        val searchQuery by viewModel.searchQuery.collectAsStateWithLifecycle()
+        val allCurrenciesWithSelection by viewModel.allCurrenciesWithSelection.collectAsStateWithLifecycle()
+
         CurrencySelectorSheet(
             currencies = allCurrenciesWithSelection,
-            searchQuery = uiState.searchQuery,
+            searchQuery = searchQuery,
             sheetState = sheetState,
             onSearchChange = { viewModel.onSearchQueryChanged(it) },
             onToggleCurrency = { code, isSelected ->
