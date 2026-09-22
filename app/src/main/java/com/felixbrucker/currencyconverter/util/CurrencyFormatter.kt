@@ -15,6 +15,8 @@ object CurrencyFormatter {
     // Thread-local cache of DecimalFormat instances to avoid heavy allocations during rapid UI updates
     private val threadLocalFormatters = ThreadLocal.withInitial { mutableMapOf<String, DecimalFormat>() }
 
+    val MATH_OPERATORS = setOf('+', '-', '*', '/', '(', ')', '×', '÷')
+
     // Pre-allocated pattern strings for crypto precision formatting
     private val cryptoPatterns = Array(11) { p ->
         "0." + "0".repeat(p.coerceAtLeast(1))
@@ -70,10 +72,9 @@ object CurrencyFormatter {
 
     fun cleanInput(input: String): String {
         // Keep digits, math operators and at most one decimal point (unless in math expression)
-        val cleaned = StringBuilder()
-        val mathOperators = setOf('+', '-', '*', '/', '(', ')', '×', '÷')
+        val cleaned = StringBuilder(input.length)
         var hasDot = false
-        val isMath = input.any { it in mathOperators }
+        val isMath = input.any { it in MATH_OPERATORS }
 
         for (char in input) {
             if (char.isDigit()) {
@@ -85,7 +86,7 @@ object CurrencyFormatter {
                     cleaned.append('.')
                     hasDot = true
                 }
-            } else if (char in mathOperators) {
+            } else if (char in MATH_OPERATORS) {
                 cleaned.append(char)
             }
         }

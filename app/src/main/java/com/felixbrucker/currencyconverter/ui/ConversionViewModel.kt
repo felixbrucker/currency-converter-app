@@ -245,15 +245,14 @@ class ConversionViewModel(application: Application) : AndroidViewModel(applicati
             .sortedBy { it.displayOrder }
 
         val activeCurrency = CurrenciesCatalog.find(activeCode)
-        val activeRateEntity = rates[activeCode.uppercase()]
+        val activeRateEntity = rates[activeCode]
         val activeRateToUsd = activeRateEntity?.rateToUsd
 
         val effectiveAmount: Double = if (isHint || activeInput.isBlank()) {
             activeHint.replace(",", "").toDoubleOrNull() ?: 1.0
         } else {
             // Try to parse the input, but if it contains math, use the last valid amount for real-time conversion
-            val mathOperators = setOf('+', '-', '*', '/', '(', ')', '×', '÷')
-            if (activeInput.any { it in mathOperators }) {
+            if (activeInput.any { it in CurrencyFormatter.MATH_OPERATORS }) {
                 activeHint.replace(",", "").toDoubleOrNull() ?: 1.0
             } else {
                 activeInput.replace(",", "").toDoubleOrNull() ?: 0.0
@@ -266,7 +265,7 @@ class ConversionViewModel(application: Application) : AndroidViewModel(applicati
         val rows = selectedUserCurrencies.mapNotNull { userCurrency ->
             val currency = CurrenciesCatalog.find(userCurrency.code) ?: return@mapNotNull null
             val isFocused = currency.code.equals(activeCode, ignoreCase = true)
-            val rateEntity = rates[currency.code.uppercase()]
+            val rateEntity = rates[currency.code]
             val currencyRateToUsd = rateEntity?.rateToUsd
             val isStale = rateEntity != null && (now.minus(rateEntity.lastUpdatedAt) > staleThreshold)
             val isRateUnavailable = rateEntity == null
@@ -309,7 +308,7 @@ class ConversionViewModel(application: Application) : AndroidViewModel(applicati
                 "N/A"
             }
             val baseRateText = if (unitExchangeRate != null) {
-                "1 ${activeCurrency?.code ?: activeCode.uppercase()} = $rateFormatted ${currency.code}"
+                "1 ${activeCurrency?.code ?: activeCode} = $rateFormatted ${currency.code}"
             } else {
                 "Rate unavailable"
             }
@@ -378,8 +377,7 @@ class ConversionViewModel(application: Application) : AndroidViewModel(applicati
     }
 
     fun onAmountInputChanged(input: String) {
-        val mathOperators = setOf('+', '-', '*', '/', '(', ')', '×', '÷')
-        val isStartingWithMath = input.length == 1 && input[0] in mathOperators
+        val isStartingWithMath = input.length == 1 && input[0] in CurrencyFormatter.MATH_OPERATORS
 
         val finalInput = if (isStartingWithMath && _activeInputText.value.isEmpty()) {
             _activeHintAmount.value.replace(",", "") + input
@@ -393,7 +391,7 @@ class ConversionViewModel(application: Application) : AndroidViewModel(applicati
 
         viewModelScope.launch {
             if (cleaned.isNotBlank()) {
-                val isMath = cleaned.any { it in mathOperators }
+                val isMath = cleaned.any { it in CurrencyFormatter.MATH_OPERATORS }
                 if (!isMath) {
                     val parsed = cleaned.toDoubleOrNull()
                     if (parsed != null) {
@@ -407,10 +405,9 @@ class ConversionViewModel(application: Application) : AndroidViewModel(applicati
 
     fun onFinishInput() {
         val currentInput = _activeInputText.value.trim()
-        val mathOperators = setOf('+', '-', '*', '/', '(', ')', '×', '÷')
         
         if (currentInput.isNotBlank()) {
-            val parsed = if (currentInput.any { it in mathOperators }) {
+            val parsed = if (currentInput.any { it in CurrencyFormatter.MATH_OPERATORS }) {
                 com.felixbrucker.currencyconverter.util.MathEvaluator.evaluate(currentInput)
             } else {
                 currentInput.toDoubleOrNull()

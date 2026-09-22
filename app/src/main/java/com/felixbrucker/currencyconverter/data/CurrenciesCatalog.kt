@@ -1155,7 +1155,7 @@ object CurrenciesCatalog {
 
     private val currencyMap = allCurrencies.associateBy { it.code }
 
-    fun find(code: String): Currency? = currencyMap[code.uppercase()]
+    fun find(code: String): Currency? = currencyMap[code] ?: currencyMap[code.uppercase()]
 
     val defaultSelectedCodes = listOf("USD", "EUR")
 }
