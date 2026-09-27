@@ -245,6 +245,7 @@ class ConversionViewModel(application: Application) : AndroidViewModel(applicati
         val activeCurrency = CurrenciesCatalog.find(activeCode)
         val activeRateEntity = rates[activeCode]
         val activeRateToUsd = activeRateEntity?.rateToUsd
+        val baseCurrencyCode = activeCurrency?.code ?: activeCode
 
         val effectiveAmount: Double = if (isHint || activeInput.isBlank()) {
             activeHint.replace(",", "").toDoubleOrNull() ?: 1.0
@@ -262,7 +263,7 @@ class ConversionViewModel(application: Application) : AndroidViewModel(applicati
 
         val rows = selectedUserCurrencies.mapNotNull { userCurrency ->
             val currency = CurrenciesCatalog.find(userCurrency.code) ?: return@mapNotNull null
-            val isFocused = currency.code.equals(activeCode, ignoreCase = true)
+            val isFocused = currency.code == activeCode
             val rateEntity = rates[currency.code]
             val currencyRateToUsd = rateEntity?.rateToUsd
             val isStale = rateEntity != null && (now.minus(rateEntity.lastUpdatedAt) > staleThreshold)
@@ -280,7 +281,7 @@ class ConversionViewModel(application: Application) : AndroidViewModel(applicati
                 null
             }
 
-            val displayedText = if (isFocused) {
+            val formattedAmount = if (isFocused) {
                 activeInput.ifBlank { CurrencyFormatter.formatAmount(effectiveAmount, currency) }
             } else {
                 if (convertedAmount != null) {
@@ -290,23 +291,9 @@ class ConversionViewModel(application: Application) : AndroidViewModel(applicati
                 }
             }
 
-            val hintText = if (isFocused) {
-                activeInput.ifBlank { CurrencyFormatter.formatAmount(effectiveAmount, currency) }
-            } else {
-                if (convertedAmount != null) {
-                    CurrencyFormatter.formatAmount(convertedAmount, currency)
-                } else {
-                    "N/A"
-                }
-            }
-
-            val rateFormatted = if (unitExchangeRate != null) {
-                CurrencyFormatter.formatRate(unitExchangeRate, currency)
-            } else {
-                "N/A"
-            }
             val baseRateText = if (unitExchangeRate != null) {
-                "1 ${activeCurrency?.code ?: activeCode} = $rateFormatted ${currency.code}"
+                val rateFormatted = CurrencyFormatter.formatRate(unitExchangeRate, currency)
+                "1 $baseCurrencyCode = $rateFormatted ${currency.code}"
             } else {
                 "Rate unavailable"
             }
@@ -315,8 +302,8 @@ class ConversionViewModel(application: Application) : AndroidViewModel(applicati
                 currency = currency,
                 isFocused = isFocused,
                 enteredText = if (isFocused) activeInput else "",
-                displayedAmountText = displayedText,
-                hintAmountText = hintText,
+                displayedAmountText = formattedAmount,
+                hintAmountText = formattedAmount,
                 isHintActive = isFocused && isHint,
                 baseExchangeRateText = baseRateText,
                 displayOrder = userCurrency.displayOrder,
