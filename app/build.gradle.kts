@@ -118,6 +118,7 @@ dependencies {
   implementation(libs.okhttp)
   implementation(libs.retrofit)
   debugImplementation(libs.androidx.compose.ui.tooling)
+  testImplementation("junit:junit:4.13.2")
   "ksp"(libs.androidx.room.compiler)
   "ksp"(libs.moshi.kotlin.codegen)
 }
