@@ -245,6 +245,7 @@ class ConversionViewModel(application: Application) : AndroidViewModel(applicati
         val activeCurrency = CurrenciesCatalog.find(activeCode)
         val activeRateEntity = rates[activeCode]
         val activeRateToUsd = activeRateEntity?.rateToUsd
+        val validActiveRateToUsd = if (activeRateToUsd != null && activeRateToUsd > 0) activeRateToUsd else null
         val baseCurrencyCode = activeCurrency?.code ?: activeCode
 
         val effectiveAmount: Double = if (isHint || activeInput.isBlank()) {
@@ -262,21 +263,22 @@ class ConversionViewModel(application: Application) : AndroidViewModel(applicati
         val staleThreshold = 24.hours
 
         val rows = selectedUserCurrencies.mapNotNull { userCurrency ->
-            val currency = CurrenciesCatalog.find(userCurrency.code) ?: return@mapNotNull null
+            val code = userCurrency.code
+            val currency = if (code == activeCode && activeCurrency != null) activeCurrency else CurrenciesCatalog.find(code) ?: return@mapNotNull null
             val isFocused = currency.code == activeCode
             val rateEntity = rates[currency.code]
             val currencyRateToUsd = rateEntity?.rateToUsd
             val isStale = rateEntity != null && (now.minus(rateEntity.lastUpdatedAt) > staleThreshold)
             val isRateUnavailable = rateEntity == null
 
-            val convertedAmount = if (activeRateToUsd != null && currencyRateToUsd != null && activeRateToUsd > 0) {
-                effectiveAmount * (currencyRateToUsd / activeRateToUsd)
+            val unitExchangeRate = if (validActiveRateToUsd != null && currencyRateToUsd != null) {
+                currencyRateToUsd / validActiveRateToUsd
             } else {
                 null
             }
 
-            val unitExchangeRate = if (activeRateToUsd != null && currencyRateToUsd != null && activeRateToUsd > 0) {
-                currencyRateToUsd / activeRateToUsd
+            val convertedAmount = if (unitExchangeRate != null) {
+                effectiveAmount * unitExchangeRate
             } else {
                 null
             }
