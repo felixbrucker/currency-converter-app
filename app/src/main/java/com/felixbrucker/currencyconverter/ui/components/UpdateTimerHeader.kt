@@ -95,7 +95,6 @@ fun UpdateTimerHeader(
                         modifier = Modifier.size(16.dp)
                     )
                 } else {
-                    // Defer state read to draw phase using progress lambda to prevent recompositions every frame
                     CircularProgressIndicator(
                         progress = { animatedProgress },
                         modifier = Modifier.size(40.dp),
