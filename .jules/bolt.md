@@ -5,3 +5,7 @@
 ## 2026-03-31 - Decoupling modal search query state from screen ConversionUiState
 **Learning:** Including ephemeral search query state in a multi-flow `combine(...)` that builds `ConversionUiState` causes every character typed in the search field to recompute rate conversions and re-format string displays for all active conversion cards. Additionally, collecting sheet-specific state at top-level screen scope triggers unnecessary screen recompositions when sheet state changes.
 **Action:** Expose modal search state via a dedicated `StateFlow` separate from `ConversionUiState`, and defer flow collection into the `if (showSheet)` block in Jetpack Compose.
+
+## 2026-04-11 - Verification of pre-existing optimizations before proposing PRs
+**Learning:** Adding comments explaining an optimization without code changes when the code already contains the optimization is an anti-pattern and gets rejected.
+**Action:** Always verify if an intended optimization is already implemented in the source code before creating a PR.
