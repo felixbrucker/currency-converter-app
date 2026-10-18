@@ -167,7 +167,7 @@ fun CurrencySelectorSheet(
                         CurrencyListItem(
                             currency = currency,
                             isSelected = isSelected,
-                            onToggle = { onToggleCurrency(currency.code, !isSelected) }
+                            onToggleCurrency = onToggleCurrency
                         )
                     }
                 }
@@ -180,10 +180,12 @@ fun CurrencySelectorSheet(
 private fun CurrencyListItem(
     currency: Currency,
     isSelected: Boolean,
-    onToggle: () -> Unit
+    onToggleCurrency: (String, Boolean) -> Unit
 ) {
+    val code = currency.code
+
     Surface(
-        onClick = onToggle,
+        onClick = { onToggleCurrency(code, !isSelected) },
         shape = RoundedCornerShape(12.dp),
         color = if (isSelected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.15f)
         else Color.Transparent,
@@ -260,7 +262,7 @@ private fun CurrencyListItem(
             // Checkmark Checkbox
             Checkbox(
                 checked = isSelected,
-                onCheckedChange = { onToggle() },
+                onCheckedChange = { onToggleCurrency(code, !isSelected) },
                 colors = CheckboxDefaults.colors(
                     checkedColor = MaterialTheme.colorScheme.primary,
                     uncheckedColor = MaterialTheme.colorScheme.outline
