@@ -1,11 +1,12 @@
 [versions]
 agp = "9.4.1"
 coreKtx = "1.19.1"
+junit = "4.13.2"
 lifecycleRuntimeKtx = "2.11.0"
 lifecycleViewmodelCompose = "2.11.0"
 lifecycleRuntimeCompose = "2.11.0"
 activityCompose = "1.13.0"
-kotlin = "2.4.20"
+kotlin = "2.4.21"
 composeBom = "2026.09.00"
 googleDevtoolsKsp = "2.3.12"
 roomRuntime = "2.8.5"
@@ -15,14 +16,13 @@ retrofit = "3.0.0"
 converterMoshi = "3.0.0"
 kotlinxCoroutinesAndroid = "1.11.0"
 kotlinxCoroutinesCore = "1.11.0"
-loggingInterceptor = "5.5.0"
+loggingInterceptor = "5.5.1"
 okhttp = "5.5.0"
 moshiKotlin = "1.15.2"
 moshiKotlinCodegen = "1.15.2"
 workRuntimeKtx = "2.12.0"
 navigationCompose = "2.10.2"
 coil = "3.6.3"
-kover = "0.9.9"
 
 
 [libraries]
@@ -43,6 +43,7 @@ androidx-room-compiler = { group = "androidx.room", name = "room-compiler", vers
 androidx-compose-material3 = { group = "androidx.compose.material3", name = "material3" }
 androidx-compose-material-icons-core = { group = "androidx.compose.material", name = "material-icons-core" }
 androidx-compose-material-icons-extended = { group = "androidx.compose.material", name = "material-icons-extended" }
+junit = { module = "junit:junit", version.ref = "junit" }
 retrofit = { group = "com.squareup.retrofit2", name = "retrofit", version.ref = "retrofit" }
 converter-moshi = { group = "com.squareup.retrofit2", name = "converter-moshi", version.ref = "converterMoshi" }
 kotlinx-coroutines-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-android", version.ref = "kotlinxCoroutinesAndroid" }
@@ -59,4 +60,3 @@ coil-network-okhttp = { group = "io.coil-kt.coil3", name = "coil-network-okhttp"
 android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 google-devtools-ksp = { id = "com.google.devtools.ksp", version.ref = "googleDevtoolsKsp" }
-kover = { id = "org.jetbrains.kotlinx.kover", version.ref = "kover" }

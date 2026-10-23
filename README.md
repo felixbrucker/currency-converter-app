@@ -55,24 +55,6 @@ To get automatic updates directly from GitHub, we recommend using [Obtainium](ht
 - **Dependency Injection**: Manual injection / Repository Singleton
 - **Image Loading**: [Coil](https://coil-kt.github.io/coil/)
 
-## 📂 Project Structure
-
-```text
-app/src/main/java/com/felixbrucker/currencyconverter/
-├── data/
-│   ├── local/          # Room database, DAOs, and Entities
-│   ├── remote/         # Retrofit services and API provider implementations
-│   ├── repository/     # Single source of truth for data
-│   └── worker/         # WorkManager sync logic
-├── model/              # Domain and UI state models
-├── ui/
-│   ├── components/     # Reusable Compose components
-│   ├── theme/          # Material 3 colors, typography, and theme
-│   └── ...             # Screens and ViewModels
-├── util/               # Formatters, connectivity observers, and helpers
-└── extensions/         # Useful Kotlin extension functions
-```
-
 ## 🚀 Getting Started
 
 ### Prerequisites
