@@ -9,3 +9,7 @@
 ## 2026-04-11 - Verification of pre-existing optimizations before proposing PRs
 **Learning:** Adding comments explaining an optimization without code changes when the code already contains the optimization is an anti-pattern and gets rejected.
 **Action:** Always verify if an intended optimization is already implemented in the source code before creating a PR.
+
+## 2026-05-18 - Avoiding low-impact collection micro-optimizations
+**Learning:** Micro-optimizations replacing standard Kotlin collection transformations (e.g. `filter`, `sortedBy`, `mapNotNull`) with index-based `for` loops in ViewModels do not yield sufficient user-perceivable performance improvements to justify code churn or risks of regression.
+**Action:** Focus optimization efforts on high-impact architectural bottlenecks or actual UI/database hot paths rather than minor collection allocation micro-optimizations.
