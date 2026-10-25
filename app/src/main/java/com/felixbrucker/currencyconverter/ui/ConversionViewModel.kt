@@ -238,6 +238,10 @@ class ConversionViewModel(application: Application) : AndroidViewModel(applicati
         @Suppress("UNCHECKED_CAST")
         val providers = params[idx++] as List<Pair<ExchangeRateProviderEntity, ExchangeRateProvider>>
 
+        val selectedUserCurrencies = userCurrencies
+            .filter { it.isSelected }
+            .sortedBy { it.displayOrder }
+
         val activeCurrency = CurrenciesCatalog.find(activeCode)
         val activeRateEntity = rates[activeCode]
         val activeRateToUsd = activeRateEntity?.rateToUsd
@@ -248,7 +252,7 @@ class ConversionViewModel(application: Application) : AndroidViewModel(applicati
             activeHint.replace(",", "").toDoubleOrNull() ?: 1.0
         } else {
             // Try to parse the input, but if it contains math, use the last valid amount for real-time conversion
-            if (CurrencyFormatter.isMathExpression(activeInput)) {
+            if (activeInput.any { it in CurrencyFormatter.MATH_OPERATORS }) {
                 activeHint.replace(",", "").toDoubleOrNull() ?: 1.0
             } else {
                 activeInput.replace(",", "").toDoubleOrNull() ?: 0.0
@@ -258,13 +262,9 @@ class ConversionViewModel(application: Application) : AndroidViewModel(applicati
         val now = now()
         val staleThreshold = 24.hours
 
-        // Single-pass construction: userCurrencies is already sorted by displayOrder ASC in Room SQL
-        val rows = ArrayList<ConversionRowState>(userCurrencies.size)
-        for (i in 0 until userCurrencies.size) {
-            val userCurrency = userCurrencies[i]
-            if (!userCurrency.isSelected) continue
+        val rows = selectedUserCurrencies.mapNotNull { userCurrency ->
             val code = userCurrency.code
-            val currency = if (code == activeCode && activeCurrency != null) activeCurrency else CurrenciesCatalog.find(code) ?: continue
+            val currency = if (code == activeCode && activeCurrency != null) activeCurrency else CurrenciesCatalog.find(code) ?: return@mapNotNull null
             val isFocused = currency.code == activeCode
             val rateEntity = rates[currency.code]
             val currencyRateToUsd = rateEntity?.rateToUsd
@@ -300,19 +300,17 @@ class ConversionViewModel(application: Application) : AndroidViewModel(applicati
                 "Rate unavailable"
             }
 
-            rows.add(
-                ConversionRowState(
-                    currency = currency,
-                    isFocused = isFocused,
-                    enteredText = if (isFocused) activeInput else "",
-                    displayedAmountText = formattedAmount,
-                    hintAmountText = formattedAmount,
-                    isHintActive = isFocused && isHint,
-                    baseExchangeRateText = baseRateText,
-                    displayOrder = userCurrency.displayOrder,
-                    isStale = isStale,
-                    isRateUnavailable = isRateUnavailable
-                )
+            ConversionRowState(
+                currency = currency,
+                isFocused = isFocused,
+                enteredText = if (isFocused) activeInput else "",
+                displayedAmountText = formattedAmount,
+                hintAmountText = formattedAmount,
+                isHintActive = isFocused && isHint,
+                baseExchangeRateText = baseRateText,
+                displayOrder = userCurrency.displayOrder,
+                isStale = isStale,
+                isRateUnavailable = isRateUnavailable
             )
         }
 
@@ -379,7 +377,7 @@ class ConversionViewModel(application: Application) : AndroidViewModel(applicati
 
         viewModelScope.launch {
             if (cleaned.isNotBlank()) {
-                val isMath = CurrencyFormatter.isMathExpression(cleaned)
+                val isMath = cleaned.any { it in CurrencyFormatter.MATH_OPERATORS }
                 if (!isMath) {
                     val parsed = cleaned.toDoubleOrNull()
                     if (parsed != null) {
@@ -395,7 +393,7 @@ class ConversionViewModel(application: Application) : AndroidViewModel(applicati
         val currentInput = _activeInputText.value.trim()
         
         if (currentInput.isNotBlank()) {
-            val parsed = if (CurrencyFormatter.isMathExpression(currentInput)) {
+            val parsed = if (currentInput.any { it in CurrencyFormatter.MATH_OPERATORS }) {
                 com.felixbrucker.currencyconverter.util.MathEvaluator.evaluate(currentInput)
             } else {
                 currentInput.toDoubleOrNull()
