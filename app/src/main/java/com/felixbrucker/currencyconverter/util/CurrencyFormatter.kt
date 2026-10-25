@@ -70,13 +70,21 @@ object CurrencyFormatter {
         }
     }
 
+    fun isMathExpression(input: String): Boolean {
+        for (i in 0 until input.length) {
+            if (input[i] in MATH_OPERATORS) return true
+        }
+        return false
+    }
+
     fun cleanInput(input: String): String {
         // Keep digits, math operators and at most one decimal point (unless in math expression)
         val cleaned = StringBuilder(input.length)
         var hasDot = false
-        val isMath = input.any { it in MATH_OPERATORS }
+        val isMath = isMathExpression(input)
 
-        for (char in input) {
+        for (i in 0 until input.length) {
+            val char = input[i]
             if (char.isDigit()) {
                 cleaned.append(char)
             } else if (char == '.' || char == ',') {
