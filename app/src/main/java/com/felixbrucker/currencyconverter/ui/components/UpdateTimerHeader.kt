@@ -33,7 +33,7 @@ import com.felixbrucker.currencyconverter.util.DateTimeFormatter
 
 @Composable
 fun UpdateTimerHeader(
-    countdownSeconds: () -> Int,
+    countdownSeconds: Int,
     maxCountdownSeconds: Int,
     lastUpdatedTimestamp: Long,
     isOnline: Boolean,
@@ -42,9 +42,8 @@ fun UpdateTimerHeader(
     onSettingsClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val currentSeconds = countdownSeconds()
     val targetProgress = if (maxCountdownSeconds > 0) {
-        (currentSeconds.toFloat() / maxCountdownSeconds.toFloat()).coerceIn(0f, 1f)
+        (countdownSeconds.toFloat() / maxCountdownSeconds.toFloat()).coerceIn(0f, 1f)
     } else 1f
 
     val animatedProgress by animateFloatAsState(
@@ -53,9 +52,9 @@ fun UpdateTimerHeader(
         label = "timerProgress"
     )
 
-    val minutes = currentSeconds / 60
-    val secs = currentSeconds % 60
-    val timerString = if (minutes > 0) String.format("%d:%02d", minutes, secs) else "${currentSeconds}s"
+    val minutes = countdownSeconds / 60
+    val secs = countdownSeconds % 60
+    val timerString = if (minutes > 0) String.format("%d:%02d", minutes, secs) else "${countdownSeconds}s"
 
     Row(
         modifier = modifier

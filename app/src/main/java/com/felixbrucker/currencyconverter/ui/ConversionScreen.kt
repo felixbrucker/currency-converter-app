@@ -76,9 +76,7 @@ fun ConversionScreen(
     modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    // Defer reading countdown timer ticks into UpdateTimerHeader to prevent ConversionScreen recomposition
-    val countdownSecondsState = viewModel.countdownSeconds.collectAsStateWithLifecycle()
-    val countdownSecondsProvider = remember(countdownSecondsState) { { countdownSecondsState.value } }
+    val countdownSeconds by viewModel.countdownSeconds.collectAsStateWithLifecycle()
 
     var showCurrencySheet by remember { mutableStateOf(false) }
     var showRatesInfoDialog by remember { mutableStateOf(false) }
@@ -101,12 +99,11 @@ fun ConversionScreen(
     var draggedIndex by remember { mutableStateOf<Int?>(null) }
     var dragOffsetY by remember { mutableFloatStateOf(0f) }
 
-    // Remember callbacks to avoid re-allocating lambdas on every recomposition
+    // Remember callbacks to avoid re-allocating lambdas on every recomposition/countdown tick
     val onRowFocus = remember(viewModel) { { code: String -> viewModel.onRowFocused(code) } }
     val onAmountChange = remember(viewModel) { { input: String -> viewModel.onAmountInputChanged(input) } }
     val onFinishInput = remember(viewModel) { { viewModel.onFinishInput() } }
     val onOpenCurrencySheet = remember { { _: String -> showCurrencySheet = true } }
-    val onOpenSearchSheet = remember { { showCurrencySheet = true } }
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -128,12 +125,12 @@ fun ConversionScreen(
         ) {
             // Live countdown & last updated header
             UpdateTimerHeader(
-                countdownSeconds = countdownSecondsProvider,
+                countdownSeconds = countdownSeconds,
                 maxCountdownSeconds = uiState.maxCountdownSeconds,
                 lastUpdatedTimestamp = uiState.lastUpdatedTimestamp,
                 isOnline = uiState.isOnline,
                 isRefreshing = uiState.isRefreshing,
-                onSearchClick = onOpenSearchSheet,
+                onSearchClick = { showCurrencySheet = true },
                 onSettingsClick = onNavigateToSettings
             )
 
