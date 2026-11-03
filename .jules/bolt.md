@@ -13,3 +13,7 @@
 ## 2026-05-18 - Avoiding low-impact collection micro-optimizations
 **Learning:** Micro-optimizations replacing standard Kotlin collection transformations (e.g. `filter`, `sortedBy`, `mapNotNull`) with index-based `for` loops in ViewModels do not yield sufficient user-perceivable performance improvements to justify code churn or risks of regression.
 **Action:** Focus optimization efforts on high-impact architectural bottlenecks or actual UI/database hot paths rather than minor collection allocation micro-optimizations.
+
+## 2026-10-25 - Deferring countdown timer state read in UpdateTimerHeader rejected as micro-optimization
+**Learning:** Deferring 1-second countdown timer state reads to a provider lambda in `UpdateTimerHeader` to avoid top-level `ConversionScreen` recomposition was rejected as a micro-optimization when individual list items already skip recomposition.
+**Action:** Do not propose Compose recomposition scoping micro-optimizations around existing timer headers; prioritize measurable heavy bottlenecks.
