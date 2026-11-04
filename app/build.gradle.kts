@@ -16,8 +16,8 @@ android {
     applicationId = "com.felixbrucker.currencyconverter"
     minSdk = 26
     targetSdk = 37
-    versionCode = 9
-    versionName = "1.1.3"
+    versionCode = 10
+    versionName = "1.1.4"
   }
 
   signingConfigs {
