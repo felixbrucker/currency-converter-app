@@ -10,7 +10,11 @@ ksp {
 
 android {
   namespace = "com.felixbrucker.currencyconverter"
-  compileSdk = 37
+  compileSdk {
+    version = release(37) {
+      minorApiLevel = 2
+    }
+  }
 
   defaultConfig {
     applicationId = "com.felixbrucker.currencyconverter"
@@ -47,11 +51,11 @@ android {
 
   buildTypes {
     release {
-      isMinifyEnabled = false
-      proguardFiles(
-        getDefaultProguardFile("proguard-android-optimize.txt"),
-        "proguard-rules.pro"
-      )
+      isMinifyEnabled = true
+      isShrinkResources = true
+      optimization {
+        enable = true
+      }
       signingConfig = signingConfigs.getByName("release")
     }
   }
@@ -92,6 +96,6 @@ dependencies {
   implementation(libs.retrofit)
   debugImplementation(libs.androidx.compose.ui.tooling)
   testImplementation(libs.junit)
-  "ksp"(libs.androidx.room.compiler)
-  "ksp"(libs.moshi.kotlin.codegen)
+  ksp(libs.androidx.room.compiler)
+  ksp(libs.moshi.kotlin.codegen)
 }
