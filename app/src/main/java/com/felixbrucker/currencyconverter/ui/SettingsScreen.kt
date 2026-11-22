@@ -30,7 +30,6 @@ import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -44,9 +43,10 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.rememberSliderState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -69,7 +69,6 @@ import com.felixbrucker.currencyconverter.ui.components.IndicatorBox
 import com.felixbrucker.currencyconverter.util.DateTimeFormatter
 import kotlin.math.roundToInt
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
     viewModel: ConversionViewModel,
@@ -86,12 +85,22 @@ fun SettingsScreen(
         }
     )
 
-    var sliderValue by remember(uiState.bgSyncIntervalHours) {
-        mutableFloatStateOf(uiState.bgSyncIntervalHours.toFloat())
+    val bgSyncSliderState = rememberSliderState(
+        value = uiState.bgSyncIntervalHours.toFloat(),
+        steps = 22,
+        trackRange = 1f..24f
+    )
+    LaunchedEffect(uiState.bgSyncIntervalHours) {
+        bgSyncSliderState.value = uiState.bgSyncIntervalHours.toFloat()
     }
 
-    var autoRefreshSlider by remember(uiState.autoRefreshMinutes) {
-        mutableFloatStateOf(uiState.autoRefreshMinutes.toFloat())
+    val autoRefreshSliderState = rememberSliderState(
+        value = uiState.autoRefreshMinutes.toFloat(),
+        steps = 8,
+        trackRange = 1f..10f
+    )
+    LaunchedEffect(uiState.autoRefreshMinutes) {
+        autoRefreshSliderState.value = uiState.autoRefreshMinutes.toFloat()
     }
 
     var selectedProviderForApiKey by remember { mutableStateOf<Pair<ExchangeRateProviderEntity, ExchangeRateProvider>?>(null) }
@@ -199,9 +208,9 @@ fun SettingsScreen(
                                             permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
                                         }
                                     }
-                                    viewModel.setBgSyncEnabled(true)
+                                    viewModel.setBgSyncEnabled(enabled = true)
                                 } else {
-                                    viewModel.setBgSyncEnabled(false)
+                                    viewModel.setBgSyncEnabled(enabled = false)
                                 }
                             },
                             modifier = Modifier
@@ -224,7 +233,7 @@ fun SettingsScreen(
                             )
                         )
                         Text(
-                            text = "${sliderValue.roundToInt()} hours",
+                            text = "${bgSyncSliderState.value.roundToInt()} hours",
                             style = MaterialTheme.typography.bodyMedium.copy(
                                 fontWeight = FontWeight.Bold,
                                 color = if (uiState.bgSyncEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
@@ -233,14 +242,12 @@ fun SettingsScreen(
                     }
 
                     Slider(
-                        value = sliderValue,
-                        onValueChange = { sliderValue = it },
+                        state = bgSyncSliderState,
+                        onValueChange = { bgSyncSliderState.value = it },
                         onValueChangeFinished = {
-                            viewModel.setBgSyncIntervalHours(sliderValue.roundToInt().toLong())
+                            viewModel.setBgSyncIntervalHours(bgSyncSliderState.value.roundToInt().toLong())
                         },
                         enabled = uiState.bgSyncEnabled,
-                        valueRange = 1f..24f,
-                        steps = 22,
                         modifier = Modifier
                     )
 
@@ -299,7 +306,7 @@ fun SettingsScreen(
                             )
                         }
                         Text(
-                            text = "${autoRefreshSlider.roundToInt()} min",
+                            text = "${autoRefreshSliderState.value.roundToInt()} min",
                             style = MaterialTheme.typography.bodyMedium.copy(
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.primary
@@ -308,13 +315,11 @@ fun SettingsScreen(
                     }
 
                     Slider(
-                        value = autoRefreshSlider,
-                        onValueChange = { autoRefreshSlider = it },
+                        state = autoRefreshSliderState,
+                        onValueChange = { autoRefreshSliderState.value = it },
                         onValueChangeFinished = {
-                            viewModel.setAutoRefreshMinutes(autoRefreshSlider.roundToInt())
+                            viewModel.setAutoRefreshMinutes(autoRefreshSliderState.value.roundToInt())
                         },
-                        valueRange = 1f..10f,
-                        steps = 8,
                         modifier = Modifier
                     )
                 }
