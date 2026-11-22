@@ -5,6 +5,16 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.lifecycle.Lifecycle
+import androidx.navigation.NavController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
@@ -21,25 +31,64 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             MyApplicationTheme {
+                val slideInFromRight = slideInHorizontally(
+                    initialOffsetX = { fullWidth -> fullWidth / 6 },
+                    animationSpec = tween(300, easing = FastOutSlowInEasing)
+                ) + fadeIn(animationSpec = tween(300, easing = FastOutSlowInEasing))
+
+                val slideOutToLeft = slideOutHorizontally(
+                    targetOffsetX = { fullWidth -> -fullWidth / 6 },
+                    animationSpec = tween(300, easing = FastOutSlowInEasing)
+                ) + fadeOut(animationSpec = tween(300, easing = FastOutSlowInEasing))
+
+                val slideInFromLeft = slideInHorizontally(
+                    initialOffsetX = { fullWidth -> -fullWidth / 6 },
+                    animationSpec = tween(300, easing = FastOutSlowInEasing)
+                ) + fadeIn(animationSpec = tween(300, easing = FastOutSlowInEasing))
+
+                val slideOutToRight = slideOutHorizontally(
+                    targetOffsetX = { fullWidth -> fullWidth / 6 },
+                    animationSpec = tween(300, easing = FastOutSlowInEasing)
+                ) + fadeOut(animationSpec = tween(300, easing = FastOutSlowInEasing))
+
+
                 val navController = rememberNavController()
-                
+
                 NavHost(
                     navController = navController,
-                    startDestination = "conversion"
+                    startDestination = "conversion",
+                    predictivePopEnterTransition = {
+                        val isSlideScreen = initialState.destination.route?.startsWith("settings") == true
+                        if (isSlideScreen) slideInFromLeft else EnterTransition.None
+                    },
+                    predictivePopExitTransition = {
+                        val isSlideScreen = initialState.destination.route?.startsWith("settings") == true
+                        if (isSlideScreen) slideOutToRight else ExitTransition.None
+                    },
                 ) {
-                    composable("conversion") {
+                    composable(
+                        route = "conversion",
+                        exitTransition = { slideOutToLeft },
+                        popEnterTransition = { slideInFromLeft },
+                    ) {
                         ConversionScreen(
                             viewModel = viewModel,
                             onNavigateToSettings = {
-                                navController.navigate("settings")
+                                navController.navigate("settings") {
+                                    launchSingleTop = true
+                                }
                             }
                         )
                     }
-                    composable("settings") {
+                    composable(
+                        route = "settings",
+                        enterTransition = { slideInFromRight },
+                        exitTransition = { slideOutToRight },
+                    ) {
                         SettingsScreen(
                             viewModel = viewModel,
                             onBack = {
-                                navController.popBackStack()
+                                navController.popBackStackSafely()
                             }
                         )
                     }
@@ -49,3 +98,13 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+private fun NavController.popBackStackSafely(): Boolean {
+    val currentEntry = currentBackStackEntry ?: return false
+    if (currentEntry.lifecycle.currentState != Lifecycle.State.RESUMED) {
+        return false
+    }
+    if (previousBackStackEntry == null) {
+        return false
+    }
+    return popBackStack()
+}
